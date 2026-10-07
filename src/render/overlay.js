@@ -7,13 +7,19 @@ export function createMapOverlay(canvas) {
   let w = 1, h = 1, dpr = 1;
   let visible = false;
 
+  // Memory: the full-screen map is off most of the time, so its backing store is only allocated while it is
+  // shown, and at 1× (flat translucent cells do not need Retina resolution).
+  function allocate() {
+    const cw = visible ? Math.round(w * dpr) : 1, chh = visible ? Math.round(h * dpr) : 1;
+    if (canvas.width !== cw || canvas.height !== chh) { canvas.width = cw; canvas.height = chh; }
+  }
   function resize(cw, ch) {
-    w = cw; h = ch; dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    w = cw; h = ch; dpr = 1;
+    allocate();
     canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
     if (!visible) ctx.clearRect(0, 0, canvas.width, canvas.height);
   }
-  function setVisible(v) { visible = v; canvas.style.display = v ? 'block' : 'none'; if (!v) ctx.clearRect(0, 0, canvas.width, canvas.height); }
+  function setVisible(v) { visible = v; canvas.style.display = v ? 'block' : 'none'; allocate(); if (!v) ctx.clearRect(0, 0, canvas.width, canvas.height); }
   function toggle() { setVisible(!visible); return visible; }
 
   function draw(state, dock) {

@@ -90,16 +90,17 @@ const stampFS = /* glsl */`
       vec2 sp = vec2(dot(vPx, vDir) * 0.03, dot(vPx, vec2(-vDir.y, vDir.x)) * 0.16);
       float streak = fbm(sp + vSeed * 0.01);
       float edge = 1.0 - smoothstep(0.45 + 0.35 * streak, 1.0, abs(across));
-      float cover = smoothstep(streak - 0.2, streak + 0.2, amt * 7.0);   // faint, broken film when the brush is nearly clean
-      t = amt * 1.1 * edge * (0.35 + 0.9 * streak) * cover;
+      float cover = smoothstep(streak - 0.2, streak + 0.2, amt * 3.5);   // faint, broken film when the brush is nearly clean
+      t = amt * 0.4 * edge * (0.25 + 0.9 * streak * streak) * cover;   // lighter than the tyres: a smudge, not a coat
     } else if (vKind < 2.5) {
       // ---- fling droplet: round head at the front, tapering tail behind
       vec2 p = vUV * vSize / max(vSize.y, 1e-3);          // in units of droplet width
       vec2 head = vec2(0.45, 0.0);
       float dh = length(p - head) / 0.42;
-      float tail = (1.0 - smoothstep(0.0, 1.0, abs(p.y) / mix(0.05, 0.32, smoothstep(-1.2, 0.6, p.x)))) * smoothstep(-1.0, -0.2, p.x) * step(p.x, 0.45);
-      float drop = 1.0 - smoothstep(0.6, 1.0, dh);
-      t = amt * 1.8 * max(drop, tail * 0.55);
+      // short, thin tail only: a flung droplet is a round dot with a little streak behind it
+      float tail = (1.0 - smoothstep(0.0, 1.0, abs(p.y) / mix(0.03, 0.22, smoothstep(-0.6, 0.45, p.x)))) * smoothstep(-0.55, 0.0, p.x) * step(p.x, 0.45);
+      float drop = 1.0 - smoothstep(0.55, 1.0, dh);
+      t = amt * 1.2 * max(drop, tail * 0.35);
     } else {
       // ---- splat: irregular blob with lobes, lumps and sponge chunks
       vec2 p = vUV * 1.35 * 2.0;                           // radius 1 = nominal splat radius
@@ -270,13 +271,15 @@ export function createSmear({ parent, lightDir }) {
   function resize(w, h) {
     const oldRt = rt, oldW = W, oldH = H;
     W = w; H = h;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    renderer.setPixelRatio(dpr);
+    // the paint is stored at 1 texel per CSS px, so a retina drawing buffer would only upsample it:
+    // render the display at 1x (a quarter of the pixels and of the canvas memory on a 2x screen)
+    renderer.setPixelRatio(1);
     renderer.setSize(w, h, false);
     texScale = Math.min(1, 2048 / Math.max(w, h));
     const tw = Math.max(1, Math.round(w * texScale)), th = Math.max(1, Math.round(h * texScale));
     rt = new THREE.WebGLRenderTarget(tw, th, {
-      type: THREE.HalfFloatType, format: THREE.RGBAFormat, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
+      // two channels are all we use (R thickness, G sponge chunks): RG16F is half the memory of RGBA16F
+      type: THREE.HalfFloatType, format: THREE.RGFormat, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
       depthBuffer: false, stencilBuffer: false,
     });
     renderer.setRenderTarget(rt); renderer.setClearColor(0x000000, 0); renderer.clear(true, false, false);
@@ -314,12 +317,17 @@ export function createSmear({ parent, lightDir }) {
     iB.array[i * 4] = w; iB.array[i * 4 + 1] = amount; iB.array[i * 4 + 2] = kind; iB.array[i * 4 + 3] = seed;
   }
 
-  /** queue stamps from the sim: [{ kind, x, y, angle, w, amount, len? }] (len = segment length px) */
-  function addStamps(list) {
+  /**
+   * queue stamps from the sim: [{ kind, x, y, angle, w, amount, len? }] (len = segment length px).
+   * plates [{ x, y, r }]: a stamp that lands on a plate is paint on the plate, not on the desk, so it is
+   * not printed on the floor layer (otherwise it shows through once the plate slides away).
+   */
+  function addStamps(list, plates) {
     if (!list || !list.length) return;
     for (const s of list) {
       const amount = Math.max(0, (s.amount ?? 0) * AMOUNT_GAIN);
       if (!(amount > 0) || !Number.isFinite(s.x) || !Number.isFinite(s.y)) continue;
+      if (plates && plates.length && onPlate(s.x, s.y, plates)) continue;
       const w = Math.max(1, s.w || 8);
       const k = KIND[s.kind] ?? 1;
       const seed = (seedCounter = (seedCounter * 16807) % 2147483647) % 1000;
@@ -349,6 +357,15 @@ export function createSmear({ parent, lightDir }) {
         push(s.x, s.y, s.angle ?? 0, 0, w, amount, k, seed);
       }
     }
+  }
+
+  function onPlate(x, y, plates) {
+    for (const p of plates) {
+      const r = (p.r || 48) * 0.97;
+      const dx = x - p.x, dy = y - p.y;
+      if (dx * dx + dy * dy < r * r) return true;
+    }
+    return false;
   }
 
   /** forget track continuity (teleport, reset, stamps stopped for a while) */

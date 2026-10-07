@@ -39,8 +39,9 @@ export { PHYS, BEH, MAP, DUST, MESS, massFromBytes };
  * @param {Array<{id,x,y,w,h,massKg}>} [config.obstacles] icons: centre + size px
  * @param {number} [config.batteryMinutes=4]
  * @param {{x,y,angle}} [config.start]  robot start pose (px); default: on the dock, backing out
- * @param {{x,y,angle}|false} [config.cake]  cake slice (px, rad: wedge axis back -> tip); default: page
- *        centre with a random angle from the seed; false = no cake
+ * @param {{x,y,angle,plate}|false} [config.cake]  cake slice (px, rad: wedge axis back -> tip) standing on a
+ *        dessert plate (plate: false = straight on the desk); default: page centre, broadside angle from the
+ *        seed; false = no cake
  */
 export async function createSim(config) {
   const width = config.width, height = config.height;
@@ -243,7 +244,7 @@ export async function createSim(config) {
         load: ms.load,                            // 0..1 frosting on the dirtiest carrier (tyres, brush)
         loadL: ms.loadL, loadR: ms.loadR, loadBrush: ms.loadBrush,
         wheelLoadL: ms.wheelLoadL, wheelLoadR: ms.wheelLoadR, // N from the suspension model (null = nominal)
-        onCake: ms.onCake,
+        onCake: ms.onCake, onPlate: ms.onPlate,
       },
       obstacles,
       dust: dust.state,
@@ -253,6 +254,7 @@ export async function createSim(config) {
       events: drained,
       cake: mess.cakeState(),                     // the newest cake (or null)
       cakes: mess.cakesState(),                   // every cake on the floor, incl. old crushed blobs
+      plates: mess.platesState(),                 // [{ id, x, y, angle, cakeId, vx, vy, omega, r }] px, rad
       smear: mess.drainSmear(),                   // stamps since the last getState()
       smearGrid: mess.smearGrid,                  // coarse paint thickness grid (sim's own record)
     };
@@ -280,9 +282,10 @@ export async function createSim(config) {
       }
     },
     get manual() { return !!manual; },
-    /** new cake slice standing at (x, y) px; the previous one stays only if it was crushed */
-    placeCake(x, y, angle) { return mess.placeCake(x, y, angle); },
-    /** clear every smear and the robot's load; the cake goes back to its configured pose */
+    /** new cake slice on a new plate at (x, y) px ({ plate: false } = on the desk); the previous cake and its
+     *  plate stay only if it was crushed */
+    placeCake(x, y, angle, opts) { return mess.placeCake(x, y, angle, opts); },
+    /** clear every smear and the robot's load; plate and cake go back to their configured pose */
     resetMess() { mess.reset(true); },
     /** diagnostics (not part of the spec contract) */
     debug: { phys, beh, mapping, dust, mess, dock: dockPx, approachPx: { x: beh.approachPoint.x * S, y: beh.approachPoint.y * S } },

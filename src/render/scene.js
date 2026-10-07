@@ -13,9 +13,12 @@ export const PX_PER_M = 440;
 const FOV_DEG = 8;
 
 export function createScene(canvas) {
-  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: 'high-performance' });
+  // Memory: on a 2× screen, 4× MSAA on a full-page canvas costs ~250 MB of GPU buffers for edges you can
+  // barely see at that pixel density, so multisampling is only used on 1× screens.
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: dpr < 1.5, powerPreference: 'high-performance' });
   renderer.setClearColor(0x000000, 0);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(dpr);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -39,7 +42,7 @@ export function createScene(canvas) {
   // difference so shadows are short and soft rather than "game-like"
   const key = new THREE.DirectionalLight(0xfff1e0, 2.2);
   key.castShadow = true;
-  key.shadow.mapSize.set(2048, 2048);
+  key.shadow.mapSize.set(1024, 1024);   // ~5 mm per texel over the page; the shadows are soft (PCF radius 4) anyway
   key.shadow.bias = -0.0004;
   key.shadow.normalBias = 0.004;
   key.shadow.radius = 4;

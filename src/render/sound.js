@@ -5,6 +5,8 @@
 //   bin-empty roar at the dock (noise turbine spool-up).
 //   Cake: wet squelch (resonant band-passed noise bursts sweeping down) on cakeHit / cakeClimb / cakeCrush,
 //   soft low-passed thud on cakeLand, sticky tyre "tack" noise loop ∝ load × wheel speed.
+//   Plate: ceramic knock on plateHit (high, resonant band-passed noise), soft clack on plateBump, glaze-on-desk
+//   scrape loop ∝ plate speed.
 
 export function createSound() {
   let ctx = null, master = null;
@@ -12,6 +14,7 @@ export function createSound() {
   let n = null; // node graph
   let roar = null;
   let crackleBudget = 0;
+  let plateSpeed = 0;   // m/s, fastest plate (set by main each frame)
   const state = { stuck: false, charging: false, emptying: false };
 
   function noiseBuffer(ac, seconds = 2) {
@@ -69,7 +72,11 @@ export function createSound() {
     const tackLP = bq('lowpass', 500, 0.7), tackLowG = gain();
     loop(brown, tackLP, tackLowG, master);
 
-    n = { noise, brown, airG, airBP, hissG, rumbleG, rumbleLP, gearG, gearBP, scrapeG, scrapeBP, tackBP, tackG, flutter, tackLowG };
+    // plate sliding on the desk: a thin, gritty ceramic scrape
+    const plateBP = bq('bandpass', 2600, 1.2), plateHP = bq('highpass', 900, 0.7), plateG = gain();
+    loop(noise, plateHP, plateBP, plateG, master);
+
+    n = { noise, brown, airG, airBP, hissG, rumbleG, rumbleLP, gearG, gearBP, scrapeG, scrapeBP, tackBP, tackG, flutter, tackLowG, plateBP, plateG };
   }
 
   function now() { return ctx.currentTime; }
@@ -100,6 +107,10 @@ export function createSound() {
     n.tackLowG.gain.setTargetAtTime(0.18 * tack, t, 0.1);
     n.flutter.gain.setTargetAtTime(Math.random() < 0.5 ? 0.2 : 1, t, 0.012);
     n.tackBP.frequency.setTargetAtTime(1600 + 1800 * Math.random(), t, 0.02);
+    // plate scrape: ∝ plate speed (m/s), slight wobble so it does not hiss steadily
+    const pv = Math.min(1, plateSpeed / 0.3);
+    n.plateG.gain.setTargetAtTime(pv > 0.03 ? 0.05 + 0.16 * pv * (0.8 + 0.4 * Math.random()) : 0, t, 0.05);
+    n.plateBP.frequency.setTargetAtTime(1900 + 1400 * pv + 300 * Math.random(), t, 0.04);
     if (r.mode !== 'emptying' && roar && !state.instantRoar) roarStop();
   }
 
@@ -129,6 +140,29 @@ export function createSound() {
       src.connect(lp).connect(g).connect(master); src.start(t, Math.random()); src.stop(t + dur + 0.02);
     }
   }
+  // ceramic knock: two or three very short, ringing high band-passed noise bursts (glaze "tink" + body)
+  function knock(force = 1) {
+    if (!n) return;
+    const t0 = now(), f = Math.min(1, 0.35 + force * 0.65);
+    for (const [fc, q, dur, g0] of [[3400 + Math.random() * 600, 18, 0.07, 0.5], [5600 + Math.random() * 900, 24, 0.045, 0.3], [1250, 6, 0.05, 0.35]]) {
+      const src = ctx.createBufferSource(); src.buffer = n.noise;
+      const b = bq('bandpass', fc, q);
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(g0 * f * 1.6, t0 + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur * (0.7 + f * 0.6));
+      src.connect(b).connect(g).connect(master); src.start(t0, Math.random() * 1.5); src.stop(t0 + dur + 0.05);
+    }
+  }
+  // soft clack: robot wheels rolling over the plate's lip (duller, lower than a knock)
+  function clack() {
+    if (!n) return;
+    const t0 = now();
+    for (const [fc, q, dur, g0, buf] of [[1800, 5, 0.035, 0.35, n.noise], [380, 1.2, 0.07, 0.4, n.brown]]) {
+      const src = ctx.createBufferSource(); src.buffer = buf;
+      const b = bq('bandpass', fc, q);
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(g0, t0 + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      src.connect(b).connect(g).connect(master); src.start(t0, Math.random() * 1.5); src.stop(t0 + dur + 0.03);
+    }
+  }
+
   // wet squelch: a few overlapping resonant noise blobs whose band sweeps down fast (the "schlp" of a
   // soft mass being compressed), over a low-passed brown-noise body
   function squelch(size = 1) {
@@ -195,6 +229,9 @@ export function createSound() {
         case 'cakeHit': squelch(Math.min(1, 0.25 + (e.force || 4) / 20)); break;
         case 'cakeLand': softThud(); break;
         case 'cakeRockBack': softThud(); break;     // the slice drops back onto its base
+        case 'plateHit': knock(Math.min(1, (e.force || 6) / 20)); break;
+        case 'plateBump': clack(); break;
+        case 'cakeOffPlate': softThud(); break;     // slice slid off the plate onto the desk
         case 'cakeClimb': squelch(0.6); break;
         case 'cakeCrush': squelch(1); setTimeout(() => squelch(0.7), 140); break;
         case 'emptyStart': roarStart(); state.emptying = true; break;
@@ -213,5 +250,7 @@ export function createSound() {
   function toggle() { setEnabled(!enabled); return enabled; }
   function resume() { init(); if (ctx && ctx.state === 'suspended') ctx.resume(); }
 
-  return { init, resume, update, handleEvents, toggle, setEnabled, get enabled() { return enabled; }, get ready() { return !!n; } };
+  function setPlateSpeed(v) { plateSpeed = Number.isFinite(v) ? v : 0; }
+
+  return { init, resume, update, handleEvents, setPlateSpeed, toggle, setEnabled, get enabled() { return enabled; }, get ready() { return !!n; } };
 }

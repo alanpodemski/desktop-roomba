@@ -61,8 +61,10 @@ export const PHYS = {
   ICON_REST_SUBSTEPS: 3,        // -      consecutive slow substeps before freezing
   ICON_SHELL_FRICTION: 0.3,     // -      Rapier friction of icon sides
   ICON_RESTITUTION: 0.0,
-  ICON_MIN_MASS: 0.05,          // kg     empty file
-  ICON_MAX_MASS: 5.0,           // kg     1 GB and up
+  ICON_MIN_MASS: 0.02,          // kg     lightest icon the sim accepts (an empty file)
+  ICON_MAX_MASS: 5.0,           // kg     heaviest icon the sim accepts (tests use 5 kg as an immovable block)
+  ICON_FILE_MASS_MAX: 0.32,     // kg     massFromBytes() at 1 GB: every file stays pushable without the bumper
+                                //        clicking (μs·m·g = 0.75·0.32·9.81 ≈ 2.4 N < BUMP_FORCE_THRESHOLD)
   ICON_MAX_MASS_BYTES: 1 << 30, // bytes  file size that reaches ICON_MAX_MASS
 
   // --- sensors ----------------------------------------------------------------------------------
@@ -83,7 +85,9 @@ export const PHYS = {
 // CAKE: the standing cake collides with icons/walls/page edge and is seen by the robot's IR rays,
 // but NOT by the robot's shell: robot <-> cake contact is mess.js's compliant bumper model, so the
 // push force (needed for the tipping criterion) is known exactly and continuously.
-export const GRP = { ROBOT: 1, ICON: 2, WALL: 4, EDGE_ICON: 8, EDGE_ROBOT: 16, CAKE: 32 };
+// PLATE: the dessert plate collides with icons, walls, the page edge and other plates. It is lower than the
+// bumper and the IR beams, so the robot meets it with its underside (mess.js), not through Rapier.
+export const GRP = { ROBOT: 1, ICON: 2, WALL: 4, EDGE_ICON: 8, EDGE_ROBOT: 16, CAKE: 32, PLATE: 64 };
 export const collisionGroups = (member, filter) => (((member & 0xffff) << 16) | (filter & 0xffff)) >>> 0;
 const groups = collisionGroups;
 const RAY_GROUPS = groups(GRP.ROBOT, GRP.ICON | GRP.WALL | GRP.CAKE);
@@ -92,7 +96,8 @@ const RAY_GROUPS = groups(GRP.ROBOT, GRP.ICON | GRP.WALL | GRP.CAKE);
 export function massFromBytes(bytes) {
   const b = Math.max(0, bytes || 0);
   const t = clamp(Math.log10(b + 1) / Math.log10(PHYS.ICON_MAX_MASS_BYTES), 0, 1);
-  return PHYS.ICON_MIN_MASS + (PHYS.ICON_MAX_MASS - PHYS.ICON_MIN_MASS) * t;
+  // log-spaced: 20 g for an empty file, ~0.13 kg at 1 MB, 0.32 kg at 1 GB
+  return PHYS.ICON_MIN_MASS * Math.pow(PHYS.ICON_FILE_MASS_MAX / PHYS.ICON_MIN_MASS, t);
 }
 
 /**
@@ -128,7 +133,7 @@ export async function createPhysics(o) {
 
   const wallBodies = [];
   for (const w of o.walls) {
-    wallBodies.push(addStaticBox(w.x, w.y, w.w / 2, w.h / 2, 'wall', GRP.WALL, GRP.ROBOT | GRP.ICON | GRP.CAKE));
+    wallBodies.push(addStaticBox(w.x, w.y, w.w / 2, w.h / 2, 'wall', GRP.WALL, GRP.ROBOT | GRP.ICON | GRP.CAKE | GRP.PLATE));
   }
   // Page bounds: icons are fenced at the exact edge (they cannot leave the desktop); the robot
   // is fenced only by a hidden rail OVERHANG metres outside, so its cliff sensors do the real work.
@@ -137,7 +142,7 @@ export async function createPhysics(o) {
   for (const [cx, cy, hw, hh] of [
     [W / 2, -T / 2, W / 2 + T, T / 2], [W / 2, H + T / 2, W / 2 + T, T / 2],
     [-T / 2, H / 2, T / 2, H / 2 + T], [W + T / 2, H / 2, T / 2, H / 2 + T],
-  ]) addStaticBox(cx, cy, hw, hh, 'edge', GRP.EDGE_ICON, GRP.ICON | GRP.CAKE);
+  ]) addStaticBox(cx, cy, hw, hh, 'edge', GRP.EDGE_ICON, GRP.ICON | GRP.CAKE | GRP.PLATE);
   for (const [cx, cy, hw, hh] of [
     [W / 2, -ov - T / 2, W / 2 + T, T / 2], [W / 2, H + ov + T / 2, W / 2 + T, T / 2],
     [-ov - T / 2, H / 2, T / 2, H / 2 + T], [W + ov + T / 2, H / 2, T / 2, H / 2 + T],
@@ -175,7 +180,7 @@ export async function createPhysics(o) {
         .setMass(mass)
         .setFriction(PHYS.ICON_SHELL_FRICTION)
         .setRestitution(PHYS.ICON_RESTITUTION)
-        .setCollisionGroups(groups(GRP.ICON, GRP.ROBOT | GRP.ICON | GRP.WALL | GRP.EDGE_ICON | GRP.CAKE)),
+        .setCollisionGroups(groups(GRP.ICON, GRP.ROBOT | GRP.ICON | GRP.WALL | GRP.EDGE_ICON | GRP.CAKE | GRP.PLATE)),
       body,
     );
     meta.set(collider.handle, { kind: 'icon', id: ic.id });

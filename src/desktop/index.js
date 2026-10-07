@@ -72,7 +72,9 @@ function sampleTopLuminance(src) {
 export function massFromBytes(bytes) {
   const b = Math.max(0, Number(bytes) || 0);
   const t = clamp(Math.log10(b + 1) / 9, 0, 1);      // 0 … 1 over 0 … 1e9
-  return clamp(0.05 * Math.pow(100, t), 0.05, 5);     // 0.05 × 100^t → 5 kg at 1 GB
+  // 20 g for an empty file up to 0.32 kg at 1 GB: big files push a little heavier, but the robot can shove
+  // every icon without its bumper clicking (static friction stays under the 2.5 N bumper threshold)
+  return clamp(0.02 * Math.pow(16, t), 0.02, 0.32);
 }
 
 function genericIconFor(item) {

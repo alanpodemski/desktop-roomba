@@ -13,6 +13,7 @@ const REQUIRED = {
   'roomba.glb': ['Body', 'Bumper', 'Buttons', 'Turret', 'WheelL', 'WheelR', 'Caster', 'SideBrush', 'Roller', 'EyeL', 'EyeR'],
   'dock.glb': ['DockBase', 'DockContacts', 'DockTower', 'DockLED'],
   'cake.glb': ['CakeSponge', 'CakeFilling', 'CakeFrosting', 'CakeTopping', 'CakeCrumbs', 'CakeSquashed'],
+  'plate.glb': ['Plate'],
 };
 
 function parseGlb(path) {

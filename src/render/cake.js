@@ -63,8 +63,9 @@ async function loadCakeModel() {
 }
 
 // scratch
-const _m = new THREE.Matrix4(), _m2 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _v = new THREE.Vector3(), _ax = new THREE.Vector3();
-const UP = new THREE.Vector3(0, 1, 0);
+const _m = new THREE.Matrix4(), _m2 = new THREE.Matrix4(), _M = new THREE.Matrix4(), _q = new THREE.Quaternion(), _v = new THREE.Vector3(), _ax = new THREE.Vector3(), _pv = new THREE.Vector3(), _Me = new THREE.Vector3();
+const UP = new THREE.Vector3(0, 1, 0), ONE = new THREE.Vector3(1, 1, 1);
+export const PLATE_SURFACE_Y = 0.006;   // m: the slice stands in the plate's well at this height (SPEC-plate)
 /** M = T(p) · R · T(−p) · M  (rotation about an axis through world point p) */
 function rotateAbout(M, p, q) {
   _m.makeTranslation(-p.x, -p.y, -p.z); M.premultiply(_m);
@@ -99,17 +100,32 @@ export async function createCakeRenderer(scene) {
     const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: shadowTex, color: 0x000000, transparent: true, opacity: 0.45, depthWrite: false }));
     shadow.rotation.x = -Math.PI / 2; shadow.renderOrder = -5;
     scene.add(slice, floorG, blobG, shadow);
-    return { slice, floorG, blobG, shadow, sliceMats, blobMats: squashed ? collectMats(squashed) : [], crushFade: -1 };
+    const sliceMeshes = []; slice.traverse((o) => { if (o.isMesh) sliceMeshes.push(o); });
+    return { slice, floorG, blobG, shadow, sliceMats, sliceMeshes, blobMats: squashed ? collectMats(squashed) : [], crushFade: -1, appliedFade: -1, yOff: 0 };
   }
   function dispose(inst) { for (const o of [inst.slice, inst.floorG, inst.blobG, inst.shadow]) o.removeFromParent(); }
-  function setSliceOpacity(inst, a) {
-    for (const m of inst.sliceMats) { m.transparent = a < 0.999; m.opacity = a; m.depthWrite = a > 0.5; }
+  /** crossfade slice -> squashed blob; touches materials only when the fade value changes */
+  function applyFade(inst, f) {
+    if (f === inst.appliedFade) return;
+    const wasOpaque = inst.appliedFade <= 0.001, isOpaque = f <= 0.001;
+    inst.appliedFade = f;
+    const a = 1 - f;
+    for (const m of inst.sliceMats) {
+      const tr = a < 0.999; if (m.transparent !== tr) { m.transparent = tr; m.needsUpdate = true; }
+      m.opacity = a; m.depthWrite = a > 0.5;
+    }
     inst.slice.visible = a > 0.001;
-    inst.slice.traverse((o) => { if (o.isMesh) o.castShadow = a > 0.5; });
+    for (const o of inst.sliceMeshes) o.castShadow = a > 0.5;
+    for (const m of inst.blobMats) {
+      const tr = f < 0.999; if (m.transparent !== tr) { m.transparent = tr; m.needsUpdate = true; }
+      m.opacity = f;
+    }
+    inst.blobG.visible = f > 0.001;
+    void wasOpaque; void isOpaque;
   }
 
   /** world point (x, 0, z) for page px */
-  const Wp = (px, py, out = new THREE.Vector3()) => out.set(px / PX_PER_M, 0, py / PX_PER_M);
+  const Wp = (px, py, out) => out.set(px / PX_PER_M, 0, py / PX_PER_M);
 
   function place(inst, c, dt) {
     const a = c.angle || 0;
@@ -121,14 +137,14 @@ export async function createCakeRenderer(scene) {
     const phi = tip * Math.PI / 2;
 
     // base pose of the standing slice
-    const M = new THREE.Matrix4().compose(_v.set(C.x, 0, C.y), _q.setFromAxisAngle(UP, yawFor(a)), new THREE.Vector3(1, 1, 1));
+    const M = _M.compose(_v.set(C.x, 0, C.y), _q.setFromAxisAngle(UP, yawFor(a)), ONE);
 
     if (tip > 0) {
       const td = c.tipDir ?? a + Math.PI / 2;
       const u = { x: Math.cos(td), y: Math.sin(td) };
       if (c.edge === 'short') {
         // over the tip or the back: rotate about the sim's pivot line (perpendicular to the axis)
-        const pv = Wp(c.pivotX ?? c.x, c.pivotY ?? c.y);
+        const pv = Wp(c.pivotX ?? c.x, c.pivotY ?? c.y, _pv);
         _ax.set(u.y, 0, -u.x);                                  // up × u
         rotateAbout(M, pv, _q.setFromAxisAngle(_ax, phi));
       } else {
@@ -144,7 +160,7 @@ export async function createCakeRenderer(scene) {
         // blend the lying slice onto the sim footprint: yaw the edge onto the axis, move its midpoint to the pivot
         const Ax = -A.x, Ay = -A.y;                             // edge runs tip -> back
         const delta = Math.atan2(ex * Ay - ey * Ax, ex * Ax + ey * Ay); // page angle edge -> axis (clockwise +)
-        const Me = new THREE.Vector3((T.x + B.x) / 2, 0, (T.y + B.y) / 2);
+        const Me = _Me.set((T.x + B.x) / 2, 0, (T.y + B.y) / 2);
         rotateAbout(M, Me, _q.setFromAxisAngle(UP, -delta * tip));
         const pvx = (c.pivotX ?? (c.x + P.x * BOX_HALF_W * s * PX_PER_M)) / PX_PER_M;
         const pvy = (c.pivotY ?? (c.y + P.y * BOX_HALF_W * s * PX_PER_M)) / PX_PER_M;
@@ -166,15 +182,20 @@ export async function createCakeRenderer(scene) {
       _m.makeScale(sxz, sy, sxz); M.premultiply(_m);
       _m.makeTranslation(F.x, 0, F.y); M.premultiply(_m);
     }
+    // standing in a plate's well: lift everything by the plate surface (eased, so a slice sliding off
+    // the rim drops onto the desk instead of popping)
+    const yT = Number.isFinite(c.baseZ) ? c.baseZ / PX_PER_M : (c.onPlate ? PLATE_SURFACE_Y : 0);
+    inst.yOff += (yT - inst.yOff) * Math.min(1, dt * 12);
+    if (inst.yOff !== 0) { _m2.makeTranslation(0, inst.yOff, 0); M.premultiply(_m2); }
     inst.slice.matrix.copy(M);
     inst.slice.matrixWorldNeedsUpdate = true;
 
-    inst.floorG.position.set(C.x, 0, C.y);
+    inst.floorG.position.set(C.x, inst.yOff, C.y);
     inst.floorG.rotation.set(0, yawFor(a), 0);
 
     // contact shadow under the visible footprint
     const fp = c.footprint;
-    inst.shadow.position.set(F.x, 0.0006, F.y);
+    inst.shadow.position.set(F.x, 0.0006 + inst.yOff, F.y);
     if (fp) { inst.shadow.scale.set(fp.w / PX_PER_M * 1.5, fp.h / PX_PER_M * 1.5, 1); inst.shadow.rotation.z = -fp.angle; }
     else { inst.shadow.scale.set(0.11, 0.17, 1); inst.shadow.rotation.z = -(a + Math.PI / 2); }
 
@@ -183,24 +204,23 @@ export async function createCakeRenderer(scene) {
     if (inst.crushFade < 0) inst.crushFade = crushed ? 1 : 0;
     inst.crushFade = Math.max(0, Math.min(1, inst.crushFade + (crushed ? 1 : -1) * dt / 0.3));
     const f = inst.blobG.children.length ? inst.crushFade : 0;
-    inst.blobG.visible = f > 0.001;
+    applyFade(inst, f);
     if (inst.blobG.visible) {
       const bx = fp ? fp.x / PX_PER_M : F.x, bz = fp ? fp.y / PX_PER_M : F.y;
-      inst.blobG.position.set(bx, 0, bz);
+      inst.blobG.position.set(bx, inst.yOff, bz);
       inst.blobG.rotation.y = yawFor(fp ? fp.angle : a);
       const sc = 0.75 + 0.25 * f;
       inst.blobG.scale.set(sc, 0.4 + 0.6 * f, sc);
-      for (const m of inst.blobMats) { m.transparent = f < 0.999; m.opacity = f; }
     }
-    setSliceOpacity(inst, 1 - f);
   }
 
   const live = new Map();   // id -> instance
+  const seen = new Set();   // reused every frame
 
   /** @param stateCakes state.cakes (array) or a single state.cake */
   function update(stateCakes, dt) {
     const list = Array.isArray(stateCakes) ? stateCakes : stateCakes ? [stateCakes] : [];
-    const seen = new Set();
+    seen.clear();
     for (const c of list) {
       if (!c || !Number.isFinite(c.x) || !Number.isFinite(c.y)) continue;
       const id = c.id ?? '__anon';
@@ -215,7 +235,7 @@ export async function createCakeRenderer(scene) {
 
   function reset() { for (const inst of live.values()) dispose(inst); live.clear(); }
 
-  return { update, reset, real, get live() { const v = [...live.values()]; return v[v.length - 1] || null; }, get count() { return live.size; } };
+  return { update, reset, real, get live() { let l = null; for (const v of live.values()) l = v; return l; }, get count() { return live.size; } };
 }
 
 /** ?caketest: a fake sim cake that runs the whole sequence once (standing → tipping → lying → squash → crushed) */

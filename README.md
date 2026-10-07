@@ -18,7 +18,7 @@ It runs in the browser on a pixel-faithful macOS desktop. The robot cleans the w
 | H | Send it home to the dock |
 | E | Empty the bin now |
 | C | Drop crumbs under the cursor |
-| K | Put a new slice of cake under the cursor |
+| K | Put a new slice of cake on a plate under the cursor |
 | M | Cycle the clean map: corner card, full screen, off |
 | R | Reset everything, including the mess |
 | Space | Pause |
@@ -34,11 +34,11 @@ URL options: `?nohud` hides every overlay for recording, `?seed=N` picks a diffe
 Nothing is scripted. The behaviour comes out of the simulation.
 
 - **Drive.** Rapier2D rigid bodies. Each wheel pushes with a force limited by the motor curve and by tyre friction, so the robot slows down and its wheels spin when it pushes something heavy.
-- **Files have mass.** An icon's mass comes from the file's size, from 50 g for an empty file to 5 kg for anything over 1 GB. Light files get bulldozed. Big folders stop it dead. Icons stick and slip with static and kinetic friction.
+- **Files have mass.** An icon's mass comes from the file's size, from 20 g for an empty file to 320 g for anything over 1 GB. The robot can shove every file, and the big ones push back harder. Icons stick and slip with static and kinetic friction.
 - **Sensors.** Bumper halves, cliff sensors at the screen edges, side and front IR range sensors. The robot only knows what its sensors told it. The map in the corner is built from bumps and IR hits, not from the page layout.
 - **Behaviours.** Modelled on classic robot vacuums: outward spiral, bounce, wall-following, spot cleaning on dirty patches, an escape ladder when trapped, then giving up with a red light. A* back to the dock over its own map, then emptying and charging.
 - **Dust.** Particles the suction pulls in and the side brush flings around before they are collected.
-- **The cake.** A 0.35 kg slice tips over when the push torque beats its weight on the narrow base. Pushed end-on it slides instead. It falls as a rigid body about its edge. Lying down it becomes a crushable sponge grid. The robot rides up on spring-loaded wheels, loses grip in the frosting, high-centres, and crushes it. Frosting moves onto each tyre and the brush, then prints back onto the desktop and wears off with distance.
+- **The cake.** A 0.35 kg slice stands on a 0.45 kg ceramic plate that slides easily on the desk. A gentle push moves the plate and the slice stays up. A hard ram, or slamming the plate into something, tips the slice: its inertia beats its weight on the narrow base, and it falls as a rigid body about its edge, onto the plate or off it. Lying down it becomes a crushable sponge grid. The robot rolls over it on spring-loaded wheels with a small hop and loses some grip in the frosting. A few passes crush it. Frosting moves onto each tyre and the brush, then prints back onto the desktop and wears off with distance.
 
 ![Stand, tip, land, climb, crush, smear](docs/cake-sequence.jpg)
 
@@ -55,7 +55,7 @@ Then open http://localhost:5174. `npm run test:sim` runs the headless physics te
 
 - `src/sim/`: the simulation. Rapier2D, no DOM, deterministic per seed, about 0.04 ms per step.
 - `src/desktop/`: the fake macOS desktop in plain DOM and CSS, with Liquid Glass menu bar and Dock.
-- `src/render/`: three.js for the robot, dock and cake, a WebGL paint layer for the smear, WebAudio for the sound (filtered noise only).
+- `src/render/`: three.js for the robot, dock, cake and plate, a WebGL paint layer for the smear, WebAudio for the sound (filtered noise only).
 - `blender/`: Python scripts that build the robot, dock and cake models procedurally and export glTF.
 - `scripts/`: the desktop asset scanner and the fake-desktop generator.
 

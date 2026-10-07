@@ -17,6 +17,7 @@ import { createMiniMap } from './render/minimap.js';
 import { createSound } from './render/sound.js';
 import { createSmear, createSmearTest } from './render/smear.js';
 import { createCakeRenderer, createCakeTest } from './render/cake.js';
+import { createPlateRenderer } from './render/plate.js';
 import { createLegend } from './render/legend.js';
 
 const q = new URLSearchParams(location.search);
@@ -78,7 +79,7 @@ async function boot() {
   let W = innerWidth, H = innerHeight;
   view.resize(W, H); map.resize(W, H);
 
-  const [robot, dockR, cakeR] = await Promise.all([loadRobot(view.scene), loadDock(view.scene), createCakeRenderer(view.scene)]);
+  const [robot, dockR, cakeR, plateR] = await Promise.all([loadRobot(view.scene), loadDock(view.scene), createCakeRenderer(view.scene), createPlateRenderer(view.scene)]);
   const keyDir = view.key.position.clone().sub(view.key.target.position);
   const smear = createSmear({ parent: floor.el, lightDir: keyDir });
   let smearOk = true;
@@ -138,6 +139,7 @@ async function boot() {
       for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) nc.data[y * nc.w + x] = prevCoverage.data[y * prevCoverage.w + x];
     }
     lastPushed.clear();
+    dustR.reset();
     return s;
   }
   sim = await makeSim(null);
@@ -239,7 +241,7 @@ async function boot() {
       case 'c': case 'C': sim.addDust(mouse.x, mouse.y, 30); break;
       case 'r': case 'R': {
         const s = await makeSim(null); sim = s; state = sim.getState(); mini.reset();
-        smear.clear(); cakeR.reset();
+        smear.clear(); cakeR.reset(); plateR.reset();
         if (CAKETEST) cakeTest = createCakeTest(W * 0.5, H * 0.45);
         if (SMEARTEST) smearTest = createSmearTest(W, H, { pxPerMeter: PX_PER_M });
         break;
@@ -294,8 +296,12 @@ async function boot() {
   let last = performance.now();
   let fps = 60, fpsAcc = 0, fpsN = 0, fpsT = last;
   window.__fps = () => fps;
+  // CPU/GPU: skip every other frame on fast screens (120 Hz ProMotion -> 60 fps, 144 Hz -> 72) to halve the work
+  // and heat; 60 and 75 Hz screens keep every frame. The sim uses real dt anyway.
+  const MIN_FRAME_MS = 12;
   function frame(now) {
     requestAnimationFrame(frame);
+    if (now - last < MIN_FRAME_MS) return;
     let dt = (now - last) / 1000; last = now;
     if (!(dt > 0)) dt = 1 / 60;
     dt = Math.min(dt, 1 / 30);
@@ -320,7 +326,7 @@ async function boot() {
         lastPushed.set(o.id, { x: o.x, y: o.y, angle: o.angle });
       }
       sound.handleEvents(state.events);
-      if (state.smear && state.smear.length) smear.addStamps(state.smear);
+      if (state.smear && state.smear.length) smear.addStamps(state.smear, state.plates);
       if (smearTest) smear.addStamps(smearTest.step(dt));
       for (const ev of state.events) if (ev.type === 'binEmptied') pill.flash('Bin emptied');
       if (state.events.length) { recentEvents.push(...state.events); if (recentEvents.length > 40) recentEvents.splice(0, recentEvents.length - 40); }
@@ -333,6 +339,8 @@ async function boot() {
         dockR.update(r, sdt);
         dustR.update(state.dust);
         cakeR.update(cakeTest ? cakeTest.step(sdt) : (state.cakes ?? state.cake ?? null), sdt);
+        plateR.update(state.plates, sdt);
+        sound.setPlateSpeed(plateR.speed / PX_PER_M);
         sound.update(r, sdt);
       }
       map.draw(state, dockPose());
@@ -348,7 +356,7 @@ async function boot() {
   requestAnimationFrame(frame);
 
   // expose for debugging in the console
-  window.__roomba = { get sim() { return sim; }, get state() { return state; }, desk, view, robot, sound, map, pill, mini, legend, smear, cake: cakeR, layoutHud };
+  window.__roomba = { get sim() { return sim; }, get state() { return state; }, desk, view, robot, sound, map, pill, mini, legend, smear, cake: cakeR, plate: plateR, layoutHud };
 }
 
 boot().catch((err) => {
