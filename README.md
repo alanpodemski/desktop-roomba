@@ -27,6 +27,8 @@ It runs in the browser on a pixel-faithful macOS desktop. The robot cleans the w
 
 Drag any desktop icon to build walls, free a stuck robot or trap it on purpose. Click once to enable sound.
 
+**On a phone** it becomes an iPhone home screen with the same robot, scaled down. Hold anywhere on the wallpaper to get a joystick and drive, double-tap for a new cake, and long-press an app icon to move it (jiggle mode, like iOS). Add `?mobile=1` to try the phone layout on a laptop.
+
 URL options: `?nohud` hides every overlay for recording, `?seed=N` picks a different run, `?battery=MINUTES` sets the battery life (default 4 so docking happens often).
 
 ## Everything is physics
@@ -55,6 +57,7 @@ Then open http://localhost:5174. `npm run test:sim` runs the headless physics te
 
 - `src/sim/`: the simulation. Rapier2D, no DOM, deterministic per seed, about 0.04 ms per step.
 - `src/desktop/`: the fake macOS desktop in plain DOM and CSS, with Liquid Glass menu bar and Dock.
+- `src/phone/`: the iPhone home screen used on phones, with the same API as the desktop.
 - `src/render/`: three.js for the robot, dock, cake and plate, a WebGL paint layer for the smear, WebAudio for the sound (filtered noise only).
 - `blender/`: Python scripts that build the robot, dock and cake models procedurally and export glTF.
 - `scripts/`: the desktop asset scanner and the fake-desktop generator.

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>phone only (dev harness)</title>
+  <!-- same stylesheet and mount id as the real page, so CSS collisions with the desktop show up here too -->
+  <link rel="stylesheet" href="/src/desktop/desktop.css" />
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #111; overscroll-behavior: none; }
+    body { display: flex; align-items: center; justify-content: center; height: 100dvh; }
+    #desktop { position: relative; width: 100vw; height: 100dvh; }
+    /* on a wide window show a phone-sized stage with a dark surround */
+    body.staged { background: radial-gradient(circle at 50% 40%, #2a2a2e, #0c0c0e 70%); }
+    body.staged #desktop { width: 393px; height: 852px; box-shadow: 0 0 0 11px #1b1b1d, 0 0 0 12px #3a3a3e, 0 30px 80px rgba(0,0,0,.6); }
+    #dbg { position: absolute; inset: 0; pointer-events: none; z-index: 900; }
+  </style>
+</head>
+<body>
+  <div id="desktop"></div>
+  <script type="module">
+    // Standalone harness for src/phone. ?debug draws getWalls()/getIcons()/getDock(); ?sim=1 runs the real
+    // sim at the phone's px/m with the same wiring as src/main.js (drag → kinematic, pushed poses written
+    // back); ?fallback=1 ignores generated assets. Wide windows get a centred 393×852 stage.
+    import { createPhone } from '/src/phone/index.js';
+    const q = new URLSearchParams(location.search);
+    const wide = Math.min(innerWidth, innerHeight) >= 600 || innerWidth > 700;
+    if (wide) document.body.classList.add('staged');
+    // short laptop windows: scale the 393×852 stage down to fit (the module maps pointers through the scale)
+    const fit = () => { if (wide) document.getElementById('desktop').style.transform = `scale(${Math.min(1, (innerHeight - 40) / 852)})`; };
+    fit(); addEventListener('resize', fit);
+    const stageEl = document.getElementById('desktop');
+    const phone = await createPhone(stageEl, { stage: wide });
+    window.phone = phone;
+    setInterval(() => phone.setClock(new Date()), 1000);
+
+    const dbg = document.createElement('canvas'); dbg.id = 'dbg'; stageEl.appendChild(dbg);
+    function draw() {
+      if (!q.has('debug')) return;
+      const { width: W, height: H } = phone.getSize();
+      const dpr = devicePixelRatio; dbg.width = W * dpr; dbg.height = H * dpr; dbg.style.width = W + 'px'; dbg.style.height = H + 'px';
+      const c = dbg.getContext('2d'); c.scale(dpr, dpr); c.lineWidth = 1.5;
+      c.strokeStyle = 'rgba(255,80,80,.95)'; for (const w of phone.getWalls()) c.strokeRect(w.x, w.y, w.w, w.h);
+      c.strokeStyle = c.fillStyle = 'rgba(80,255,120,.95)'; c.font = '9px -apple-system';
+      for (const i of phone.getIcons()) { c.save(); c.translate(i.x, i.y); c.rotate(i.angle || 0); c.strokeRect(-i.w / 2, -i.h / 2, i.w, i.h); c.restore(); c.fillText(Math.round(i.massKg * 1000) + ' g', i.x - 12, i.y - i.h / 2 - 3); }
+      const d = phone.getDock(); const r = 0.17 * phone.getPxPerMeter();
+      c.strokeStyle = 'rgba(80,160,255,.95)'; c.beginPath(); c.arc(d.x, d.y, r, 0, 7); c.stroke();
+      c.beginPath(); c.moveTo(d.x, d.y); c.lineTo(d.x + Math.cos(d.angle) * r * 1.4, d.y + Math.sin(d.angle) * r * 1.4); c.stroke();
+    }
+    draw(); phone.onResize(draw); phone.onIconDrag(draw); phone.onIconDragEnd(draw);
+
+    if (q.has('sim')) {
+      const { createSim } = await import('/src/sim/index.js');
+      let sim, robotDot, dragging = new Set();
+      const make = async () => {
+        const { width, height } = phone.getSize();
+        sim = await createSim({ width, height, pxPerMeter: phone.getPxPerMeter(), seed: 1, dock: phone.getDock(), walls: phone.getWalls(), obstacles: phone.getIcons() });
+        window.sim = sim;
+      };
+      await make();
+      phone.onResize(make);
+      phone.onIconDragStart((id) => { dragging.add(id); const ic = phone.getIcons().find((i) => i.id === id); sim.setObstacleKinematic(id, ic.x, ic.y); });
+      phone.onIconDrag((id, x, y) => sim.setObstacleKinematic(id, x, y));
+      phone.onIconDragEnd((id) => { dragging.delete(id); sim.releaseObstacle(id); });
+      robotDot = document.createElement('div');
+      const d = 0.34 * phone.getPxPerMeter();
+      Object.assign(robotDot.style, { position: 'absolute', left: 0, top: 0, width: d + 'px', height: d + 'px', margin: `${-d / 2}px 0 0 ${-d / 2}px`, borderRadius: '50%', background: 'rgba(60,60,64,.9)', boxShadow: 'inset 0 0 0 3px rgba(200,200,205,.85)', pointerEvents: 'none', zIndex: 800 });
+      stageEl.appendChild(robotDot);
+      let last = performance.now();
+      const frame = (now) => {
+        requestAnimationFrame(frame);
+        const dt = Math.min(1 / 30, Math.max(1e-3, (now - last) / 1000)); last = now;
+        sim.step(dt);
+        const st = sim.getState(); window.state = st;
+        robotDot.style.transform = `translate(${st.robot.x}px, ${st.robot.y}px)`;
+        for (const o of st.obstacles) if (!dragging.has(o.id)) phone.setIconPosition(o.id, o.x, o.y, o.angle);
+      };
+      requestAnimationFrame(frame);
+    }
+  </script>
+</body>
+</html>

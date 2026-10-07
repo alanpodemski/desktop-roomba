@@ -6,9 +6,13 @@
 // Keys: M map · I info pill · N sound · H send home to dock · E empty bin now ·
 //       C crumbs under cursor · K cake at the cursor · R reset (also smear + cake) · Space pause ·
 //       L controls legend
+// Phone layout (SPEC-mobile): ?mobile=1 forces it, ?mobile=0 forces the desktop; auto on coarse-pointer screens
+// narrower than 600 px. On a laptop with ?mobile=1 the phone runs in a centred 393×852 stage. Minimal HUD: a status
+// pill, touch-and-hold on empty wallpaper drives (floating joystick), double-tap there places a cake on a plate.
+// ?hint shows the one-time hint again.
 
 import { createSim } from './sim/index.js';
-import { createScene, PX_PER_M } from './render/scene.js';
+import { createScene, PX_PER_M, setPxPerMeter } from './render/scene.js';
 import { loadRobot } from './render/robot.js';
 import { loadDock } from './render/dock.js';
 import { createDust } from './render/dust.js';
@@ -19,6 +23,7 @@ import { createSmear, createSmearTest } from './render/smear.js';
 import { createCakeRenderer, createCakeTest } from './render/cake.js';
 import { createPlateRenderer } from './render/plate.js';
 import { createLegend } from './render/legend.js';
+import { createPhoneHud } from './render/phoneHud.js';
 
 const q = new URLSearchParams(location.search);
 const SEED = Number(q.get('seed')) || 1;
@@ -27,6 +32,52 @@ const NOHUD = q.has('nohud');
 const DEBUG = q.has('debug');
 const SMEARTEST = q.has('smeartest');
 const CAKETEST = q.has('caketest');
+
+// ---- layout mode ---------------------------------------------------------------------------------------------
+const PHONE_VIEWPORT = matchMedia('(pointer: coarse)').matches && Math.min(innerWidth, innerHeight) < 600;
+const MOBILE = q.get('mobile') === '1' ? true : q.get('mobile') === '0' ? false : PHONE_VIEWPORT;
+const STAGE_W = 393, STAGE_H = 852;     // iPhone 15/16 Pro in CSS px
+
+/** Phone layout: wrap #desktop, #gl and #map in a stage. The stage is a containing block for the fixed-position
+ *  layers, so they fill it instead of the window. On a real phone it is the whole viewport; on a laptop it is a
+ *  centred phone-sized frame. */
+function buildStage() {
+  const framed = !PHONE_VIEWPORT;
+  document.documentElement.classList.add('rb-phone');
+  if (framed) document.documentElement.classList.add('rb-phone-framed');
+  else {
+    const vp = document.querySelector('meta[name="viewport"]');
+    if (vp) vp.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
+  }
+  const stage = document.createElement('div');
+  stage.id = 'stage';
+  document.body.insertBefore(stage, document.body.firstChild);
+  for (const id of ['desktop', 'gl', 'map']) stage.appendChild(document.getElementById(id));
+  const fit = () => {
+    if (!framed) return;
+    // a phone-sized frame; on short windows it only gets shorter (no scaling, so pointer px stay 1:1)
+    stage.style.width = STAGE_W + 'px';
+    stage.style.height = Math.min(STAGE_H, Math.max(480, innerHeight - 32)) + 'px';
+  };
+  fit();
+  addEventListener('resize', fit);
+  return { stage, framed };
+}
+
+async function loadPhoneModule() {
+  try {
+    // import.meta.glob: empty while src/phone/ does not exist yet, a normal bundled chunk once it does
+    const loaders = import.meta.glob('./phone/index.js');
+    const load = loaders['./phone/index.js'];
+    if (!load) throw new Error('src/phone/index.js not found');
+    const mod = await load();
+    if (mod && typeof mod.createPhone === 'function') return { create: mod.createPhone, kind: 'phone' };
+    console.warn('[roomba] src/phone/index.js has no createPhone export; using the desktop module in the phone stage');
+  } catch (err) {
+    console.warn('[roomba] phone module unavailable, using the desktop module in the phone stage:', err && err.message);
+  }
+  return null;
+}
 
 /** the floor layer: between the wallpaper and the icons. desk.getFloorLayer() when the desktop has it,
  *  otherwise the icon container's parent (the smear canvas gets z-index 1, under the icons' 5). */
@@ -52,31 +103,74 @@ async function loadDesktopModule() {
 }
 
 async function boot() {
-  const { createDesktop, real } = await loadDesktopModule();
+  const stageInfo = MOBILE ? buildStage() : null;
+  const stage = stageInfo && stageInfo.stage;
   const deskRoot = document.getElementById('desktop');
-  const desk = await createDesktop(deskRoot);
-  window.__desktopModule = real ? 'real' : 'mock';
-  console.info(`[roomba] desktop module: ${window.__desktopModule}`);
+  let desk, layoutKind;
+  const phoneMod = MOBILE ? await loadPhoneModule() : null;
+  if (phoneMod) {
+    desk = await phoneMod.create(deskRoot, { stage });
+    layoutKind = 'phone';
+  } else {
+    const { createDesktop, real } = await loadDesktopModule();
+    desk = await createDesktop(deskRoot);
+    layoutKind = real ? 'desktop' : 'mock';
+  }
+  window.__desktopModule = layoutKind;
+  window.__mode = MOBILE ? (stageInfo.framed ? 'phone (framed stage)' : 'phone') : 'desktop';
+  console.info(`[roomba] mode: ${window.__mode}, layout module: ${layoutKind}`);
   setInterval(() => desk.setClock(new Date()), 1000);
+
+  // page size: the window on the desktop, the stage on a phone
+  const pageSize = () => (stage ? { w: stage.clientWidth, h: stage.clientHeight } : { w: innerWidth, h: innerHeight });
+  // physical scale: desktop 440 px/m; phone layout's own value, else ≈ 210 px/m on a 393 px wide phone
+  if (MOBILE) {
+    const v = typeof desk.getPxPerMeter === 'function' ? desk.getPxPerMeter() : 210 * pageSize().w / STAGE_W;
+    setPxPerMeter(v);
+  }
+  window.__pxPerMeter = PX_PER_M;
+  // stage-relative pointer coordinates (the stage is offset on a laptop)
+  let stageOff = { x: 0, y: 0 };
+  const updateStageOff = () => { if (stage) { const r = stage.getBoundingClientRect(); stageOff = { x: r.left, y: r.top }; } };
+  updateStageOff();
 
   const glCanvas = document.getElementById('gl');
   const mapCanvas = document.getElementById('map');
-  const view = createScene(glCanvas);
+  const view = createScene(glCanvas, MOBILE ? { dprCap: 2, shadowMapSize: 512 } : {});
   const map = createMapOverlay(mapCanvas);
-  const pill = createStatusPill(document.body);
-  const mini = createMiniMap({ parent: document.body, pxPerMeter: PX_PER_M });
+  const hudParent = stage || document.body;
+  let phoneHud = null;
+  if (MOBILE) {
+    phoneHud = createPhoneHud({
+      stage,
+      onStick: (st) => { drive.stick = st; drive.lastInput = performance.now(); },
+      onDoubleTap: (x, y) => placeCake(x, y),
+      isFloor: (x, y) => isFloor(x, y),
+      isBusy: () => typeof desk.isJiggling === 'function' && !!desk.isJiggling(),
+      forceHint: q.has('hint'),
+    });
+  }
+  const pill = phoneHud ? phoneHud.pill : createStatusPill(document.body);
+  // no Clean map card on phones: a stub keeps the shared code unchanged
+  const mini = MOBILE
+    ? { el: document.createElement('div'), visible: false, expanded: false, resize() {}, setAvoid() {}, setReserve() {}, rect() { return { left: 0, bottom: 0, width: 0, height: 0 }; }, update() {}, reset() {}, setVisible() {}, toggle() { return false; } }
+    : createMiniMap({ parent: hudParent, pxPerMeter: PX_PER_M });
   if (q.has('nominimap') || NOHUD) mini.setVisible(false);
-  const legend = createLegend(document.body);
+  // no keyboard legend on phones: a stub keeps the desktop layout code unchanged
+  const legend = MOBILE
+    ? { el: document.createElement('div'), visible: false, toggle() { return false; }, setVisible() {}, height() { return 0; }, place() {} }
+    : createLegend(document.body);
   if (NOHUD || q.has('nolegend')) legend.setVisible(false);
+  if (NOHUD && phoneHud) phoneHud.setVisible(false);
   const floor = floorLayerOf(desk, deskRoot);
   window.__floorLayer = floor.real ? 'desk.getFloorLayer()' : 'fallback (icon container parent)';
   console.info(`[roomba] smear floor layer: ${window.__floorLayer}`);
   const sound = createSound();
-  const dustR = createDust(view.scene, 4000);
+  const dustR = createDust(view.scene, MOBILE ? 2500 : 4000);
   map.setVisible(q.has('map') && !NOHUD);
   if (NOHUD) pill.setVisible(false);
 
-  let W = innerWidth, H = innerHeight;
+  let { w: W, h: H } = pageSize();
   view.resize(W, H); map.resize(W, H);
 
   const [robot, dockR, cakeR, plateR] = await Promise.all([loadRobot(view.scene), loadDock(view.scene), createCakeRenderer(view.scene), createPlateRenderer(view.scene)]);
@@ -95,6 +189,7 @@ async function boot() {
   // charging station: stack above the minimap when there is room below the station, otherwise sit to the
   // minimap's right on the same baseline (small pages), otherwise hide.
   function layoutHud() {
+    if (phoneHud) { phoneHud.layout({ W, H, walls: desk.getWalls(), icons: desk.getIcons() }); return; }
     mini.setReserve(0);
     mini.resize(W, H);
     if (!legend.visible) return;
@@ -161,7 +256,8 @@ async function boot() {
   // resize → new sim with the same seed, coverage carried over
   let resizePending = null;
   async function onResize() {
-    W = innerWidth; H = innerHeight;
+    ({ w: W, h: H } = pageSize());
+    updateStageOff();
     view.resize(W, H); map.resize(W, H); smear.resize(W, H); layoutHud();
     if (SMEARTEST) smearTest = createSmearTest(W, H, { pxPerMeter: PX_PER_M });
     const prevCov = state ? { w: state.coverage.w, h: state.coverage.h, data: state.coverage.data.slice() } : null;
@@ -176,13 +272,27 @@ async function boot() {
   // ---- input --------------------------------------------------------------------------------------------
   let paused = false;
   const mouse = { x: W / 2, y: H / 2 };
-  addEventListener('pointermove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; }, { passive: true });
+  addEventListener('pointermove', (e) => { mouse.x = e.clientX - stageOff.x; mouse.y = e.clientY - stageOff.y; }, { passive: true });
+  if (stage) addEventListener('scroll', updateStageOff, { passive: true });
+  /** stage px: empty wallpaper, i.e. not on an icon, the status bar, the Search pill / Dock or the HUD */
+  function isFloor(x, y) {
+    if (x < 0 || y < 0 || x > W || y > H) return false;
+    for (const w of desk.getWalls()) if (x >= w.x && x <= w.x + w.w && y >= w.y && y <= w.y + w.h) return false;
+    const obs = state ? state.obstacles : null;
+    for (const ic of desk.getIcons()) {
+      const o = obs && obs.find((b) => b.id === ic.id);
+      const cx = o ? o.x : ic.x, cy = o ? o.y : ic.y, a = o ? o.angle : (ic.angle || 0);
+      const dx = x - cx, dy = y - cy, c = Math.cos(a), s = Math.sin(a);
+      if (Math.abs(dx * c + dy * s) <= ic.w / 2 + 4 && Math.abs(-dx * s + dy * c) <= ic.h / 2 + 4) return false;
+    }
+    return true;
+  }
   const unlock = () => sound.resume();
   addEventListener('pointerdown', unlock, { passive: true });
   addEventListener('keydown', unlock);
   // ---- remote control: arrows / WASD drive, Shift = turbo, Enter (or 4 s idle) hands it back ----------------
   const DRIVE_KEYS = { ArrowUp: 'f', KeyW: 'f', ArrowDown: 'b', KeyS: 'b', ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r' };
-  const drive = { held: new Set(), turbo: false, lastInput: -1e9, throttle: 0, steer: 0 };
+  const drive = { held: new Set(), turbo: false, lastInput: -1e9, throttle: 0, steer: 0, stick: null };
   const HANDBACK_S = 4;
   window.__drive = drive;
   addEventListener('keydown', (e) => {
@@ -202,24 +312,38 @@ async function boot() {
   addEventListener('blur', () => { drive.held.clear(); drive.turbo = false; });
   // hand the robot back now: forget held keys and the idle grace period
   function dropRemote() {
-    drive.held.clear(); drive.lastInput = -1e9; drive.throttle = 0; drive.steer = 0;
+    drive.held.clear(); drive.lastInput = -1e9; drive.throttle = 0; drive.steer = 0; drive.stick = null;
     if (sim) sim.setManual(null);
   }
   function updateDrive(dt) {
     if (!sim) return;
-    const h = drive.held;
-    const tgtT = (h.has('f') ? 1 : 0) - (h.has('b') ? 1 : 0);
-    const tgtS = (h.has('r') ? 1 : 0) - (h.has('l') ? 1 : 0);
+    const h = drive.held, st = drive.stick;
+    // the phone's joystick is analogue; the keys are on/off
+    const tgtT = st ? st.throttle : (h.has('f') ? 1 : 0) - (h.has('b') ? 1 : 0);
+    const tgtS = st ? st.steer : (h.has('r') ? 1 : 0) - (h.has('l') ? 1 : 0);
     // thumb-on-a-joystick smoothing so taps are gentle and holds are full power
     const a = Math.min(1, dt * 8);
     drive.throttle += (tgtT - drive.throttle) * a;
     drive.steer += (tgtS - drive.steer) * Math.min(1, dt * 12);
     const idle = (performance.now() - drive.lastInput) / 1000;
-    if (h.size || idle < HANDBACK_S) {
-      sim.setManual({ throttle: drive.throttle, steer: drive.steer, turbo: drive.turbo });
+    if (h.size || st || idle < HANDBACK_S) {
+      if (st) drive.lastInput = performance.now();
+      sim.setManual({ throttle: drive.throttle, steer: drive.steer, turbo: st ? st.turbo : drive.turbo });
     } else if (sim.manual) {
       sim.setManual(null);
     }
+  }
+
+  async function resetAll() {
+    const s = await makeSim(null); sim = s; state = sim.getState(); mini.reset();
+    smear.clear(); cakeR.reset(); plateR.reset();
+    if (CAKETEST) cakeTest = createCakeTest(W * 0.5, H * 0.45);
+    if (SMEARTEST) smearTest = createSmearTest(W, H, { pxPerMeter: PX_PER_M });
+  }
+  function placeCake(x, y) {
+    if (typeof sim.placeCake !== 'function') { pill.flash('No cake in this sim yet'); return; }
+    sim.placeCake(x, y, Math.random() * Math.PI * 2);
+    pill.flash('Cake!');
   }
 
   addEventListener('keydown', async (e) => {
@@ -239,21 +363,8 @@ async function boot() {
       case 'h': case 'H': dropRemote(); sim.sendToDock(); pill.flash('Going home'); break;
       case 'e': case 'E': sim.emptyBinNow(); break;
       case 'c': case 'C': sim.addDust(mouse.x, mouse.y, 30); break;
-      case 'r': case 'R': {
-        const s = await makeSim(null); sim = s; state = sim.getState(); mini.reset();
-        smear.clear(); cakeR.reset(); plateR.reset();
-        if (CAKETEST) cakeTest = createCakeTest(W * 0.5, H * 0.45);
-        if (SMEARTEST) smearTest = createSmearTest(W, H, { pxPerMeter: PX_PER_M });
-        break;
-      }
-      case 'k': case 'K': {
-        if (typeof sim.placeCake === 'function') {
-          // random but deterministic-enough angle; the cake stands where the cursor is
-          sim.placeCake(mouse.x, mouse.y, Math.random() * Math.PI * 2);
-          pill.flash('Cake!');
-        } else pill.flash('No cake in this sim yet');
-        break;
-      }
+      case 'r': case 'R': await resetAll(); break;
+      case 'k': case 'K': placeCake(mouse.x, mouse.y); break;   // the cake stands where the cursor is
       case 'l': case 'L': legend.toggle(); layoutHud(); break;
       case 'Enter': dropRemote(); pill.flash('Autopilot'); break;
       case ' ': paused = !paused; e.preventDefault(); break;
@@ -356,7 +467,7 @@ async function boot() {
   requestAnimationFrame(frame);
 
   // expose for debugging in the console
-  window.__roomba = { get sim() { return sim; }, get state() { return state; }, desk, view, robot, sound, map, pill, mini, legend, smear, cake: cakeR, plate: plateR, layoutHud };
+  window.__roomba = { get sim() { return sim; }, get state() { return state; }, desk, view, robot, sound, map, pill, mini, legend, smear, cake: cakeR, plate: plateR, layoutHud, phoneHud, drive, updateDrive, stage, mode: window.__mode };
 }
 
 boot().catch((err) => {

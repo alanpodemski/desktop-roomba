@@ -9,13 +9,20 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
-export const PX_PER_M = 440;
+// Physical scale of the current layout (CSS px per metre). A live binding: every render module imports it, and
+// main.js sets it once at boot before anything is created (desktop 440, phone ≈ 210 · width / 393).
+export let PX_PER_M = 440;
+export function setPxPerMeter(v) { if (Number.isFinite(v) && v > 0) PX_PER_M = v; }
 const FOV_DEG = 8;
 
-export function createScene(canvas) {
+/**
+ * @param {HTMLCanvasElement} canvas
+ * @param {{ dprCap?: number, shadowMapSize?: number }} [opts]  phones: shadow map 512
+ */
+export function createScene(canvas, { dprCap = 2, shadowMapSize = 1024 } = {}) {
   // Memory: on a 2× screen, 4× MSAA on a full-page canvas costs ~250 MB of GPU buffers for edges you can
   // barely see at that pixel density, so multisampling is only used on 1× screens.
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const dpr = Math.min(window.devicePixelRatio || 1, dprCap);
   const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: dpr < 1.5, powerPreference: 'high-performance' });
   renderer.setClearColor(0x000000, 0);
   renderer.setPixelRatio(dpr);
@@ -42,7 +49,7 @@ export function createScene(canvas) {
   // difference so shadows are short and soft rather than "game-like"
   const key = new THREE.DirectionalLight(0xfff1e0, 2.2);
   key.castShadow = true;
-  key.shadow.mapSize.set(1024, 1024);   // ~5 mm per texel over the page; the shadows are soft (PCF radius 4) anyway
+  key.shadow.mapSize.set(shadowMapSize, shadowMapSize);   // ~5 mm per texel over the page; the shadows are soft (PCF radius 4) anyway
   key.shadow.bias = -0.0004;
   key.shadow.normalBias = 0.004;
   key.shadow.radius = 4;

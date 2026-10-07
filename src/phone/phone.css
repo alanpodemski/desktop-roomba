@@ -1,0 +1,249 @@
+/* Fake iPhone home screen (iOS 26, Liquid Glass). Geometry in pt of a 393×852 iPhone, scaled by --ph-s
+   (stage width / 393). Everything is positioned by src/phone/index.js; this file holds the looks. */
+
+.ph-root {
+  --ph-s: 1;
+  --ph-icon: calc(60px * var(--ph-s));
+  position: relative;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, "SF Pro Text", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: #fff;
+  background: #000;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+  overscroll-behavior: none;
+  cursor: default;
+}
+.ph-root.ph-staged { border-radius: calc(55px * var(--ph-s)); }   /* iPhone display corner radius */
+.ph-root * { -webkit-touch-callout: none; }
+.ph-root img { -webkit-user-drag: none; user-select: none; }
+
+.ph-wallpaper {
+  position: absolute; inset: 0;
+  background-size: cover;
+  background-position: 46% 50%;
+  /* iOS dims the home screen wallpaper slightly behind icons */
+  filter: brightness(0.92);
+}
+.ph-floor { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
+.ph-floor * { pointer-events: none; }
+.ph-icons { position: absolute; inset: 0; z-index: 5; }
+
+/* ---------------------------------------------------------------- status bar */
+.ph-status {
+  position: absolute; left: 0; right: 0; top: 0;
+  height: calc(54px * var(--ph-s));
+  z-index: 20;
+  pointer-events: none;
+}
+.ph-island {
+  position: absolute;
+  left: 50%; top: calc(11px * var(--ph-s));
+  width: calc(126px * var(--ph-s)); height: calc(37.33px * var(--ph-s));
+  margin-left: calc(-63px * var(--ph-s));
+  border-radius: calc(18.67px * var(--ph-s));
+  background: #000;
+}
+.ph-time {
+  position: absolute;
+  top: calc(30px * var(--ph-s));
+  transform: translate(-50%, -50%);
+  font-size: calc(17px * var(--ph-s));
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+.ph-indicators {
+  position: absolute;
+  top: calc(30px * var(--ph-s));
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--ph-s));
+  transition: opacity 0.2s;
+}
+.ph-indicators img, .ph-indicators svg { display: block; }
+.ph-root.ph-jiggling .ph-time, .ph-root.ph-jiggling .ph-indicators { opacity: 0; }
+
+/* Edit / Done pills shown in place of the status items in jiggle mode */
+.ph-pill-btn {
+  position: absolute;
+  top: calc(30px * var(--ph-s));
+  transform: translateY(-50%) scale(0.85);
+  height: calc(30px * var(--ph-s));
+  padding: 0 calc(14px * var(--ph-s));
+  border-radius: calc(15px * var(--ph-s));
+  font-size: calc(15px * var(--ph-s));
+  font-weight: 600;
+  line-height: calc(30px * var(--ph-s));
+  color: #fff;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.25s cubic-bezier(.2, .9, .3, 1.3);
+  z-index: 30;
+}
+.ph-root.ph-jiggling .ph-pill-btn { opacity: 1; transform: translateY(-50%) scale(1); pointer-events: auto; }
+.ph-pill-btn:active { filter: brightness(1.3); }
+
+/* ---------------------------------------------------------------- Liquid Glass */
+.ph-glass {
+  background: rgba(255, 255, 255, 0.13);
+  -webkit-backdrop-filter: blur(calc(18px * var(--ph-s))) saturate(1.8);
+  backdrop-filter: blur(calc(18px * var(--ph-s))) saturate(1.8);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.32),
+    inset 0 1px 0.5px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 1px 0 rgba(255, 255, 255, 0.08),
+    0 6px 18px rgba(0, 0, 0, 0.18);
+}
+.ph-glass.ph-glass-dock {
+  background: rgba(255, 255, 255, 0.10);
+  -webkit-backdrop-filter: blur(calc(24px * var(--ph-s))) saturate(1.7);
+  backdrop-filter: blur(calc(24px * var(--ph-s))) saturate(1.7);
+}
+
+/* ---------------------------------------------------------------- search pill, dock, home bar */
+.ph-search {
+  position: absolute;
+  height: calc(30px * var(--ph-s));
+  border-radius: calc(15px * var(--ph-s));
+  display: flex; align-items: center; justify-content: center;
+  gap: calc(4px * var(--ph-s));
+  padding: 0 calc(12px * var(--ph-s)) 0 calc(10px * var(--ph-s));
+  box-sizing: border-box;
+  font-size: calc(14px * var(--ph-s));
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.92);
+  z-index: 6;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.ph-search img, .ph-search svg { display: block; opacity: 0.92; }
+.ph-dock {
+  position: absolute;
+  border-radius: calc(38px * var(--ph-s));
+  z-index: 6;
+}
+.ph-dock .ph-dock-icon {
+  position: absolute;
+  width: var(--ph-icon); height: var(--ph-icon);
+}
+.ph-home-bar {
+  position: absolute;
+  left: 50%;
+  width: calc(134px * var(--ph-s)); height: calc(5px * var(--ph-s));
+  margin-left: calc(-67px * var(--ph-s));
+  border-radius: calc(2.5px * var(--ph-s));
+  background: rgba(255, 255, 255, 0.92);
+  z-index: 7;
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------- app icons */
+.ph-icon {
+  position: absolute; left: 0; top: 0;
+  width: var(--ph-icon); height: var(--ph-icon);
+  will-change: transform;
+  touch-action: none;
+}
+.ph-jiggle, .ph-lift { position: absolute; inset: 0; }
+.ph-tile {
+  position: absolute; inset: 0;
+  border-radius: 22.37%;            /* iOS continuous corner ≈ 0.2237 × size (squircle) */
+  overflow: hidden;
+  transform: translateZ(0);
+  transition: filter 0.12s;
+}
+.ph-tile img { display: block; width: 100%; height: 100%; pointer-events: none; }
+.ph-dock-icon .ph-tile { position: absolute; inset: 0; }
+.ph-label {
+  position: absolute;
+  top: calc(100% + 6px * var(--ph-s));
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(80px * var(--ph-s));
+  font-size: calc(12px * var(--ph-s));
+  line-height: calc(14px * var(--ph-s));
+  font-weight: 500;
+  letter-spacing: 0;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #fff;
+  text-shadow: 0 0.5px 1.5px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.ph-icon.ph-pressed .ph-tile { filter: brightness(0.62); }
+
+/* live Calendar face (the macOS icon has a static dotted grid) */
+.ph-cal {
+  position: absolute; inset: 0;
+  background: #fff;
+  display: flex; flex-direction: column; align-items: center;
+  line-height: 1;
+  pointer-events: none;
+}
+.ph-cal-wd {
+  margin-top: 13%;
+  font-size: calc(var(--ph-icon) * 0.165);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #ff3b30;
+}
+.ph-cal-day {
+  margin-top: 1%;
+  font-size: calc(var(--ph-icon) * 0.58);
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  color: #000;
+}
+
+/* jiggle mode */
+@keyframes ph-jiggle-a {
+  0% { transform: rotate(-1.4deg) translate(0, 0.3px); }
+  50% { transform: rotate(1.4deg) translate(0.3px, -0.3px); }
+  100% { transform: rotate(-1.4deg) translate(0, 0.3px); }
+}
+@keyframes ph-jiggle-b {
+  0% { transform: rotate(1.3deg) translate(-0.3px, 0); }
+  50% { transform: rotate(-1.3deg) translate(0, 0.3px); }
+  100% { transform: rotate(1.3deg) translate(-0.3px, 0); }
+}
+.ph-root.ph-jiggling .ph-icon .ph-jiggle { animation: ph-jiggle-a var(--jd, 0.27s) linear infinite; animation-delay: var(--jdelay, 0s); }
+.ph-root.ph-jiggling .ph-icon:nth-child(2n) .ph-jiggle { animation-name: ph-jiggle-b; }
+.ph-badge {
+  position: absolute;
+  left: calc(-7px * var(--ph-s)); top: calc(-7px * var(--ph-s));
+  width: calc(22px * var(--ph-s)); height: calc(22px * var(--ph-s));
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(110, 110, 116, 0.72);
+  -webkit-backdrop-filter: blur(8px) saturate(1.6);
+  backdrop-filter: blur(8px) saturate(1.6);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.3), 0 1px 3px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  transform: scale(0.4);
+  transition: opacity 0.18s, transform 0.25s cubic-bezier(.2, .9, .3, 1.4);
+  pointer-events: none;
+}
+.ph-badge i { display: block; width: 42%; height: 9%; min-height: 1.5px; border-radius: 1px; background: #fff; }
+.ph-root.ph-jiggling .ph-badge { opacity: 1; transform: scale(1); }
+
+/* lifted while dragging: bigger, shadow, label hidden, no jiggle (as iOS) */
+.ph-icon.ph-dragging { z-index: 100; }
+.ph-icon.ph-dragging .ph-jiggle { animation: none !important; }
+.ph-icon .ph-lift { transition: transform 0.18s cubic-bezier(.2, .9, .3, 1.2); }
+.ph-icon.ph-dragging .ph-lift { transform: scale(1.14); }
+.ph-icon.ph-dragging .ph-tile { box-shadow: 0 10px 22px rgba(0, 0, 0, 0.38); overflow: hidden; }
+.ph-icon.ph-dragging .ph-label, .ph-icon.ph-dragging .ph-badge { opacity: 0; }
+.ph-icon.ph-moved .ph-tile { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); }

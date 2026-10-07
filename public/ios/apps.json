@@ -1,0 +1,208 @@
+{
+  "generatedAt": "2026-10-07T20:29:59.692Z",
+  "iconPx": 180,
+  "apps": [
+    {
+      "id": "facetime",
+      "label": "FaceTime",
+      "icon": "/ios/icons/facetime.png",
+      "bytes": 2768896,
+      "slot": {
+        "row": 0,
+        "col": 0
+      },
+      "dock": false
+    },
+    {
+      "id": "calendar",
+      "label": "Calendar",
+      "icon": "/ios/icons/calendar.png",
+      "bytes": 5840896,
+      "slot": {
+        "row": 0,
+        "col": 1
+      },
+      "dock": false
+    },
+    {
+      "id": "photos",
+      "label": "Photos",
+      "icon": "/ios/icons/photos.png",
+      "bytes": 22138880,
+      "slot": {
+        "row": 0,
+        "col": 2
+      },
+      "dock": false
+    },
+    {
+      "id": "camera",
+      "label": "Camera",
+      "icon": "/ios/icons/camera.svg",
+      "bytes": 30000000,
+      "slot": {
+        "row": 0,
+        "col": 3
+      },
+      "dock": false
+    },
+    {
+      "id": "clock",
+      "label": "Clock",
+      "icon": "/ios/icons/clock.png",
+      "bytes": 6008832,
+      "slot": {
+        "row": 1,
+        "col": 0
+      },
+      "dock": false
+    },
+    {
+      "id": "maps",
+      "label": "Maps",
+      "icon": "/ios/icons/maps.png",
+      "bytes": 49471488,
+      "slot": {
+        "row": 1,
+        "col": 1
+      },
+      "dock": false
+    },
+    {
+      "id": "weather",
+      "label": "Weather",
+      "icon": "/ios/icons/weather.png",
+      "bytes": 18575360,
+      "slot": {
+        "row": 1,
+        "col": 2
+      },
+      "dock": false
+    },
+    {
+      "id": "reminders",
+      "label": "Reminders",
+      "icon": "/ios/icons/reminders.png",
+      "bytes": 15245312,
+      "slot": {
+        "row": 1,
+        "col": 3
+      },
+      "dock": false
+    },
+    {
+      "id": "notes",
+      "label": "Notes",
+      "icon": "/ios/icons/notes.png",
+      "bytes": 14401536,
+      "slot": {
+        "row": 2,
+        "col": 0
+      },
+      "dock": false
+    },
+    {
+      "id": "app-store",
+      "label": "App Store",
+      "icon": "/ios/icons/app-store.png",
+      "bytes": 8564736,
+      "slot": {
+        "row": 2,
+        "col": 3
+      },
+      "dock": false
+    },
+    {
+      "id": "podcasts",
+      "label": "Podcasts",
+      "icon": "/ios/icons/podcasts.png",
+      "bytes": 41758720,
+      "slot": {
+        "row": 3,
+        "col": 0
+      },
+      "dock": false
+    },
+    {
+      "id": "tv",
+      "label": "TV",
+      "icon": "/ios/icons/tv.png",
+      "bytes": 47095808,
+      "slot": {
+        "row": 3,
+        "col": 2
+      },
+      "dock": false
+    },
+    {
+      "id": "settings",
+      "label": "Settings",
+      "icon": "/ios/icons/settings.png",
+      "bytes": 2990080,
+      "slot": {
+        "row": 3,
+        "col": 3
+      },
+      "dock": false
+    },
+    {
+      "id": "phone",
+      "label": "Phone",
+      "icon": "/ios/icons/phone.png",
+      "bytes": 1478656,
+      "slot": null,
+      "dock": true
+    },
+    {
+      "id": "safari",
+      "label": "Safari",
+      "icon": "/ios/icons/safari.png",
+      "bytes": 36233216,
+      "slot": null,
+      "dock": true
+    },
+    {
+      "id": "messages",
+      "label": "Messages",
+      "icon": "/ios/icons/messages.png",
+      "bytes": 1392640,
+      "slot": null,
+      "dock": true
+    },
+    {
+      "id": "music",
+      "label": "Music",
+      "icon": "/ios/icons/music.png",
+      "bytes": 67801088,
+      "slot": null,
+      "dock": true
+    }
+  ],
+  "symbols": {
+    "cellularbars": {
+      "src": "/ios/icons/sym-cellularbars.png",
+      "w": 19,
+      "h": 13
+    },
+    "wifi": {
+      "src": "/ios/icons/sym-wifi.png",
+      "w": 17,
+      "h": 13
+    },
+    "battery.100percent": {
+      "src": "/ios/icons/sym-battery-100percent.png",
+      "w": 29,
+      "h": 15
+    },
+    "magnifyingglass": {
+      "src": "/ios/icons/sym-magnifyingglass.png",
+      "w": 16,
+      "h": 15
+    },
+    "minus": {
+      "src": "/ios/icons/sym-minus.png",
+      "w": 14,
+      "h": 4
+    }
+  }
+}

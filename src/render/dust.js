@@ -84,7 +84,9 @@ export function createDust(scene, capacity = 4000) {
       if (shown[i] && x === lastX[i] && y === lastY[i] && size === lastS[i]) continue;
       shown[i] = 1; lastX[i] = x; lastY[i] = y; lastS[i] = size;
       const k = i % SHAPES, idx = (i / SHAPES) | 0;
-      const sizeM = (size * SIZE_GAIN) / PX_PER_M;
+      // crumb sizes come from the sim in px of the 440 px/m desktop: keep them physical on other layouts
+      // (the phone's ~200 px/m would otherwise draw them twice as large), never under ~1.3 px
+      const sizeM = Math.max(size / 440, 1.3 / PX_PER_M) * SIZE_GAIN;
       p.set(x / PX_PER_M, sizeM * 0.35, y / PX_PER_M);
       q.setFromAxisAngle(UP, (i * 2.399963) % (Math.PI * 2));
       sc.set(sizeM, sizeM, sizeM);

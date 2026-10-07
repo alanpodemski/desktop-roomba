@@ -11,6 +11,16 @@
     /* the robot layer sits above the desktop icons but keeps the DOM interactive */
     #gl { position: fixed; inset: 0; pointer-events: none; z-index: 1000; width: 100%; height: 100%; }
     #map { position: fixed; inset: 0; pointer-events: none; z-index: 1001; }
+
+    /* phone layout (?mobile=1 or a phone): everything lives in #stage. Its transform makes it the containing block
+       for the fixed-position layers inside, so they fill the stage instead of the window. */
+    html.rb-phone, html.rb-phone body { overscroll-behavior: none; touch-action: none; -webkit-user-select: none; user-select: none; }
+    html.rb-phone #stage { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; height: 100dvh;
+      overflow: hidden; transform: translateZ(0); touch-action: none; background: #000; }
+    /* on a laptop: a centred phone-sized frame on a dark surround */
+    html.rb-phone-framed body { background: radial-gradient(ellipse at 50% 40%, #2a2a30 0%, #121215 60%, #0a0a0c 100%); }
+    html.rb-phone-framed #stage { left: 50%; top: 50%; translate: -50% -50%; border-radius: 52px;
+      box-shadow: 0 0 0 10px #1c1c1f, 0 0 0 11.5px #3a3a3f, 0 30px 80px rgba(0,0,0,.6); }
   </style>
 </head>
 <body>

@@ -8,6 +8,8 @@
 //   Plate: ceramic knock on plateHit (high, resonant band-passed noise), soft clack on plateBump, glaze-on-desk
 //   scrape loop ∝ plate speed.
 
+import { PX_PER_M } from './scene.js';
+
 export function createSound() {
   let ctx = null, master = null;
   let enabled = true;
@@ -92,7 +94,7 @@ export function createSound() {
     n.hissG.gain.setTargetAtTime(0.035 * suction, t, 0.25);
     n.rumbleG.gain.setTargetAtTime(0.28 * brush, t, 0.2);
     n.rumbleLP.frequency.setTargetAtTime(140 + 120 * brush, t, 0.3);
-    const ws = (Math.abs(r.wheelL) + Math.abs(r.wheelR)) / 2 / 440; // m/s
+    const ws = (Math.abs(r.wheelL) + Math.abs(r.wheelR)) / 2 / PX_PER_M; // m/s
     n.gearG.gain.setTargetAtTime(docked ? 0 : Math.min(0.2, ws * 0.6), t, 0.08);
     n.gearBP.frequency.setTargetAtTime(380 + 500 * ws, t, 0.1);
     const slip = Math.max(r.slipL || 0, r.slipR || 0);
