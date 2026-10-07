@@ -1,0 +1,178 @@
+{
+  "macOS": {
+    "version": "27.2",
+    "build": "26B5091g"
+  },
+  "dark": true,
+  "accent": "blue",
+  "locale": "en-US",
+  "languages": [
+    "en-US"
+  ],
+  "hour12": true,
+  "clock": {
+    "showAMPM": true,
+    "showDate": 0,
+    "showDayOfWeek": true,
+    "showSeconds": false,
+    "isAnalog": false
+  },
+  "battery": {
+    "percent": 100,
+    "charging": true,
+    "onAC": true,
+    "present": true
+  },
+  "wifi": {
+    "on": true
+  },
+  "displays": [
+    {
+      "name": "Color LCD",
+      "pixelWidth": 3456,
+      "pixelHeight": 2234,
+      "width": 1728,
+      "height": 1117,
+      "main": true,
+      "builtIn": true,
+      "notch": true
+    }
+  ],
+  "mainDisplay": {
+    "name": "Color LCD",
+    "pixelWidth": 3456,
+    "pixelHeight": 2234,
+    "width": 1728,
+    "height": 1117,
+    "main": true,
+    "builtIn": true,
+    "notch": true
+  },
+  "menubar": {
+    "height": 37,
+    "appleMenu": true,
+    "appName": "Finder",
+    "menuTitles": [
+      "File",
+      "Edit",
+      "View",
+      "Go",
+      "Window",
+      "Help"
+    ],
+    "status": null,
+    "controlCenter": {
+      "AudioVideoModule": false,
+      "Battery": false,
+      "BentoBox": true,
+      "Bluetooth": true,
+      "Clock": true,
+      "FaceTime": false,
+      "FocusModes": true,
+      "Item-0": false,
+      "Item-1": false,
+      "Item-10": false,
+      "Item-2": false,
+      "Item-3": false,
+      "Item-4": false,
+      "Item-5": false,
+      "Item-6": false,
+      "Item-7": false,
+      "Item-8": false,
+      "Item-9": false,
+      "NowPlaying": false,
+      "ScreenMirroring": false,
+      "Shortcuts": true,
+      "Sound": false,
+      "Timer": false,
+      "WiFi": true,
+      "BatteryShowPercentage": false
+    },
+    "symbols": {
+      "apple.logo": {
+        "src": "/mac/icons/sym-apple-logo.png",
+        "w": 13,
+        "h": 17
+      },
+      "wifi": {
+        "src": "/mac/icons/sym-wifi.png",
+        "w": 18,
+        "h": 13
+      },
+      "magnifyingglass": {
+        "src": "/mac/icons/sym-magnifyingglass.png",
+        "w": 16,
+        "h": 15
+      },
+      "switch.2": {
+        "src": "/mac/icons/sym-switch-2.png",
+        "w": 16,
+        "h": 14
+      },
+      "battery.100percent": {
+        "src": "/mac/icons/sym-battery-100percent.png",
+        "w": 22,
+        "h": 11
+      },
+      "battery.75percent": {
+        "src": "/mac/icons/sym-battery-75percent.png",
+        "w": 22,
+        "h": 11
+      },
+      "battery.50percent": {
+        "src": "/mac/icons/sym-battery-50percent.png",
+        "w": 22,
+        "h": 11
+      },
+      "battery.25percent": {
+        "src": "/mac/icons/sym-battery-25percent.png",
+        "w": 22,
+        "h": 11
+      },
+      "battery.0percent": {
+        "src": "/mac/icons/sym-battery-0percent.png",
+        "w": 22,
+        "h": 11
+      },
+      "battery.100percent.bolt": {
+        "src": "/mac/icons/sym-battery-100percent-bolt.png",
+        "w": 22,
+        "h": 14
+      },
+      "speaker.wave.2.fill": {
+        "src": "/mac/icons/sym-speaker-wave-2-fill.png",
+        "w": 19,
+        "h": 14
+      },
+      "mic.fill": {
+        "src": "/mac/icons/sym-mic-fill.png",
+        "w": 14,
+        "h": 16
+      },
+      "moon.fill": {
+        "src": "/mac/icons/sym-moon-fill.png",
+        "w": 15,
+        "h": 15
+      },
+      "airplayvideo": {
+        "src": "/mac/icons/sym-airplayvideo.png",
+        "w": 18,
+        "h": 15
+      },
+      "square.3.layers.3d": {
+        "src": "/mac/icons/sym-square-3-layers-3d.png",
+        "w": 16,
+        "h": 17
+      },
+      "icloud.and.arrow.down": {
+        "src": "/mac/icons/sym-icloud-and-arrow-down.png",
+        "w": 17,
+        "h": 17
+      }
+    }
+  },
+  "wallpaper": {
+    "name": "Radial Purple",
+    "src": "/mac/wallpaper.jpg"
+  }
+}

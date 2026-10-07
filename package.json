@@ -1,0 +1,20 @@
+{
+  "name": "desktop-roomba",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host --port 5174",
+    "build": "vite build",
+    "preview": "vite preview",
+    "scan": "node scripts/scan-mac.mjs",
+    "test:sim": "node src/sim/test.mjs"
+  },
+  "dependencies": {
+    "@dimforge/rapier2d-compat": "^0.14.0",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
+  }
+}

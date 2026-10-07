@@ -1,0 +1,126 @@
+{
+  "tileSize": 51,
+  "magnification": true,
+  "largeSize": 47,
+  "orientation": "bottom",
+  "autohide": false,
+  "showRecents": false,
+  "minimizeToApp": false,
+  "apps": [
+    {
+      "id": "finder",
+      "label": "Finder",
+      "path": "/System/Library/CoreServices/Finder.app",
+      "kind": "app",
+      "running": true,
+      "persistent": true,
+      "icon": "/mac/icons/dock-finder.png"
+    },
+    {
+      "id": "apps",
+      "label": "Apps",
+      "path": "/System/Applications/Apps.app",
+      "kind": "app",
+      "running": false,
+      "persistent": true,
+      "icon": "/mac/icons/dock-apps.png"
+    },
+    {
+      "id": "safari",
+      "label": "Safari",
+      "path": "/System/Volumes/Preboot/Cryptexes/App/System/Applications/Safari.app",
+      "kind": "app",
+      "running": true,
+      "persistent": true,
+      "icon": "/mac/icons/dock-safari.png"
+    },
+    {
+      "id": "messages",
+      "label": "Messages",
+      "path": "/System/Applications/Messages.app",
+      "kind": "app",
+      "running": true,
+      "persistent": true,
+      "icon": "/mac/icons/dock-messages.png"
+    },
+    {
+      "id": "mail",
+      "label": "Mail",
+      "path": "/System/Applications/Mail.app",
+      "kind": "app",
+      "running": false,
+      "persistent": true,
+      "icon": "/mac/icons/dock-mail.png"
+    },
+    {
+      "id": "maps",
+      "label": "Maps",
+      "path": "/System/Applications/Maps.app",
+      "kind": "app",
+      "running": false,
+      "persistent": true,
+      "icon": "/mac/icons/dock-maps.png"
+    },
+    {
+      "id": "photos",
+      "label": "Photos",
+      "path": "/System/Applications/Photos.app",
+      "kind": "app",
+      "running": false,
+      "persistent": true,
+      "icon": "/mac/icons/dock-photos.png"
+    },
+    {
+      "id": "calendar",
+      "label": "Calendar",
+      "path": "/System/Applications/Calendar.app",
+      "kind": "app",
+      "running": false,
+      "persistent": true,
+      "liveDate": true,
+      "icon": "/mac/icons/dock-calendar.png"
+    },
+    {
+      "id": "notes",
+      "label": "Notes",
+      "path": "/System/Applications/Notes.app",
+      "kind": "app",
+      "running": true,
+      "persistent": true,
+      "icon": "/mac/icons/dock-notes.png"
+    },
+    {
+      "id": "music",
+      "label": "Music",
+      "path": "/System/Applications/Music.app",
+      "kind": "app",
+      "running": true,
+      "persistent": true,
+      "icon": "/mac/icons/dock-music.png"
+    },
+    {
+      "id": "app-store",
+      "label": "App Store",
+      "path": "/System/Applications/App Store.app",
+      "kind": "app",
+      "running": false,
+      "persistent": true,
+      "icon": "/mac/icons/dock-app-store.png"
+    },
+    {
+      "id": "system-settings",
+      "label": "System Settings",
+      "path": "/System/Applications/System Settings.app",
+      "kind": "app",
+      "running": false,
+      "persistent": true,
+      "icon": "/mac/icons/dock-system-settings.png"
+    }
+  ],
+  "others": [],
+  "trash": {
+    "full": true,
+    "iconFull": "/mac/icons/trash-full.png",
+    "iconEmpty": "/mac/icons/trash-empty.png"
+  }
+}

@@ -1,0 +1,326 @@
+/* Fake macOS 27 (Tahoe-era Liquid Glass) desktop. All sizes in CSS px, measured against
+   screencapture of the real desktop on the 1728×1117 built-in display. */
+
+#desktop {
+  --mb-h: 37px;              /* menu bar height: 37 on notch displays, 24 elsewhere */
+  --mb-text-h: 31px;         /* text block height; items are centred in this, not in the bar */
+  --mb-text-dy: 3.5px;       /* measured: cap-centre of menu text sits at y≈15.5 on the 37px bar */
+  --dock-tile: 51px;
+  --dock-gap: 4px;
+  --dock-h: 69px;
+  --dock-bottom: 7px;
+  --dock-pad-x: 8px;
+  --dock-pad-top: 10px;
+  --dock-radius: 24px;
+  --icon: 48px;
+  --label-size: 10px;
+  --label-lh: 12.5px;
+  --accent: #0a60ff;
+  --accent-label: rgba(16, 99, 230, 0.95);
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, "SF Pro Text", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: #fff;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+/* ---------------------------------------------------------------- wallpaper */
+.dk-wallpaper {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* ---------------------------------------------------------------- floor layer */
+/* things lying on the desk surface (cake smear): above the wallpaper, under the icons */
+.dk-floor {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.dk-floor * { pointer-events: none; }
+
+/* ---------------------------------------------------------------- menu bar */
+.dk-menubar {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: var(--mb-h);
+  display: flex;
+  align-items: flex-start;
+  font-size: 13px;
+  line-height: var(--mb-text-h);
+  color: #fff;
+  z-index: 20;
+  pointer-events: none;
+}
+.dk-menubar.dk-light { color: #000; }
+.dk-mb-left, .dk-mb-right {
+  position: relative;
+  top: var(--mb-text-dy);
+  display: flex;
+  align-items: center;
+  height: var(--mb-text-h);
+}
+.dk-mb-right { margin-left: auto; }
+.dk-mb-item {
+  display: flex;
+  align-items: center;
+  height: var(--mb-text-h);
+  padding: 0 9.75px;
+  white-space: nowrap;
+  letter-spacing: 0;
+  font-weight: 500; /* CoreText draws SF heavier than Skia; medium matches the real bar */
+}
+.dk-mb-item.dk-mb-apple {
+  padding: 0 10px 0 20px;
+}
+.dk-mb-apple svg, .dk-mb-apple img { display: block; height: 16px; width: auto; }
+.dk-mb-item.dk-mb-app { font-weight: 700; }
+.dk-mb-strip {
+  display: block;
+  height: var(--mb-h);
+  width: auto;
+  /* the captured strip is already positioned like the real bar: pin it to the bar's top edge */
+  align-self: flex-start;
+  margin-top: calc(-1 * var(--mb-text-dy));
+}
+.dk-mb-status {
+  display: flex;
+  align-items: center;
+  height: var(--mb-text-h);
+  gap: 0;
+}
+.dk-mb-status .dk-mb-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10.75px;              /* measured item pitch ≈ 37 px for 15 px glyphs */
+  height: var(--mb-text-h);
+}
+.dk-mb-glyph svg, .dk-mb-glyph img { display: block; }
+.dk-mb-glyph img { display: block; }
+.dk-mb-battery .dk-pct { margin-right: 6px; font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.dk-mb-clock {
+  padding: 0 22px 0 12px;
+  white-space: pre;   /* keeps the double space between date and time */
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------- Dock */
+.dk-dock {
+  position: absolute;
+  left: 50%;
+  bottom: var(--dock-bottom);
+  transform: translateX(-50%);
+  height: var(--dock-h);
+  padding: var(--dock-pad-top) var(--dock-pad-x) 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--dock-gap);
+  border-radius: var(--dock-radius);
+  z-index: 10;
+  /* Liquid Glass: heavy blur + saturation, faint fill, specular rim, soft drop shadow */
+  background: rgba(70, 60, 95, 0.14);
+  -webkit-backdrop-filter: blur(26px) saturate(1.6);
+  backdrop-filter: blur(26px) saturate(1.6);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.26),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+    inset 0 -0.5px 0 0 rgba(255, 255, 255, 0.08),
+    0 0 0 0.5px rgba(0, 0, 0, 0.3),
+    0 8px 26px rgba(0, 0, 0, 0.3);
+}
+.dk-dock.dk-light {
+  background: rgba(255, 255, 255, 0.28);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.55),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
+    0 0 0 0.5px rgba(0, 0, 0, 0.12),
+    0 10px 30px rgba(0, 0, 0, 0.18);
+}
+.dk-dock::before {
+  /* top specular highlight band */
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 45%);
+  pointer-events: none;
+}
+.dk-tile {
+  position: relative;
+  width: var(--dock-tile);
+  height: var(--dock-tile);
+  flex: none;
+}
+.dk-tile img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  -webkit-user-drag: none;
+}
+/* live Calendar face drawn over the static icon's content area (Tahoe icon grid: the squircle
+   spans 824/1024 of the tile, corner radius ≈ 22.5 % of it) */
+.dk-cal {
+  position: absolute;
+  left: 10.2%; top: 10.2%; right: 10.2%; bottom: 10.2%;
+  border-radius: 22.5%;
+  background: linear-gradient(#fff, #f4f4f4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  line-height: 1;
+  pointer-events: none;
+}
+.dk-cal-wd {
+  margin-top: 11%;
+  font-size: calc(var(--dock-tile) * 0.15);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #f23d35;
+}
+.dk-cal-day {
+  margin-top: 1%;
+  font-size: calc(var(--dock-tile) * 0.47);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: #1d1d1f;
+}
+.dk-tile .dk-dot {
+  position: absolute;
+  left: 50%;
+  bottom: -5.5px;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0.4);
+}
+.dk-dock.dk-light .dk-tile .dk-dot { background: rgba(0, 0, 0, 0.55); box-shadow: none; }
+.dk-tile .dk-badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 9px;
+  background: #ff3b30;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.25);
+}
+.dk-divider {
+  flex: none;
+  width: 1px;
+  height: calc(var(--dock-tile) - 2px);
+  margin: 1px 10.5px 0 10.5px;
+  background: rgba(255, 255, 255, 0.2);
+}
+.dk-dock.dk-light .dk-divider { background: rgba(0, 0, 0, 0.18); }
+
+/* ---------------------------------------------------------------- desktop icons */
+.dk-icons {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+}
+.dk-icon {
+  position: absolute;
+  left: 0; top: 0;
+  width: var(--icon);
+  will-change: transform;
+  transform-origin: calc(var(--icon) / 2) calc(var(--icon) / 2);
+  touch-action: none;
+}
+.dk-icon-img {
+  position: relative;
+  width: var(--icon);
+  height: var(--icon);
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+.dk-icon-img img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+.dk-icon-label {
+  position: absolute;
+  top: calc(var(--icon) + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 78px;
+  font-size: var(--label-size);
+  line-height: var(--label-lh);
+  font-weight: 700;
+  text-align: center;
+  color: #fff;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.72),
+    0 0 1px rgba(0, 0, 0, 0.55),
+    0 0 4px rgba(0, 0, 0, 0.30);
+  border-radius: 3px;
+  padding: 0 3px;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+.dk-icon-label.dk-dark-text {
+  color: #000;
+  text-shadow: none;
+}
+.dk-icon-label .dk-line { display: block; }
+.dk-icon-label .dk-cloud {
+  display: inline-block;
+  vertical-align: -2.5px;
+  margin-left: 3px;
+  width: 14px;
+  height: 11px;
+  color: rgba(255, 255, 255, 0.72);
+  text-shadow: none;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+}
+.dk-icon-label .dk-cloud svg, .dk-icon-label .dk-cloud img { display: block; width: 14px; height: 11px; object-fit: contain; }
+
+/* selection, as Finder draws it on the desktop */
+.dk-icon.dk-selected .dk-icon-img {
+  background: rgba(255, 255, 255, 0.22);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.22);
+}
+.dk-icon.dk-selected .dk-icon-label {
+  background: var(--accent-label);
+  text-shadow: none;
+}
+
+/* pick-up while dragging */
+.dk-icon.dk-dragging {
+  z-index: 50;
+  opacity: 0.9;
+}
+.dk-icon.dk-dragging .dk-icon-img img {
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+}
+.dk-icon.dk-dragging .dk-icon-label {
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+/* icons shoved by the robot get a faint contact shadow so the tilt reads */
+.dk-icon.dk-moved .dk-icon-img img {
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
+}

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>desktop only (dev harness)</title>
+  <link rel="stylesheet" href="/src/desktop/desktop.css" />
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
+    #desktop { position: fixed; inset: 0; }
+    #dbg { position: fixed; inset: 0; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <div id="desktop"></div>
+  <canvas id="dbg"></canvas>
+  <script type="module">
+    // Standalone harness for src/desktop — the real page is index.html + src/main.js.
+    // ?debug=1 draws getWalls()/getIcons()/getDock() rects, ?notch=0 forces the 24px menu bar.
+    import { createDesktop } from '/src/desktop/index.js';
+    const desk = await createDesktop(document.getElementById('desktop'));
+    window.desk = desk;
+    setInterval(() => desk.setClock(new Date()), 1000);
+    const q = new URLSearchParams(location.search);
+    const dbg = document.getElementById('dbg');
+    function draw() {
+      if (!q.has('debug')) return;
+      const dpr = devicePixelRatio;
+      dbg.width = innerWidth * dpr; dbg.height = innerHeight * dpr;
+      const c = dbg.getContext('2d'); c.scale(dpr, dpr);
+      c.lineWidth = 1.5;
+      c.strokeStyle = 'rgba(255,80,80,.9)';
+      for (const w of desk.getWalls()) c.strokeRect(w.x, w.y, w.w, w.h);
+      c.strokeStyle = 'rgba(80,255,120,.9)'; c.fillStyle = 'rgba(80,255,120,.9)'; c.font = '10px -apple-system';
+      for (const i of desk.getIcons()) {
+        c.save(); c.translate(i.x, i.y); c.rotate(i.angle || 0); c.strokeRect(-i.w / 2, -i.h / 2, i.w, i.h); c.restore();
+        c.fillText(i.massKg.toFixed(2) + 'kg', i.x - 20, i.y - i.h / 2 - 3);
+      }
+      const d = desk.getDock();
+      c.strokeStyle = 'rgba(80,160,255,.9)';
+      c.beginPath(); c.arc(d.x, d.y, 75, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.moveTo(d.x, d.y); c.lineTo(d.x + Math.cos(d.angle) * 60, d.y + Math.sin(d.angle) * 60); c.stroke();
+    }
+    draw();
+    desk.onResize(draw);
+    desk.onIconDrag(draw);
+    desk.onIconDragEnd(draw);
+    // ?sim=1: run the real sim against this desktop with the same wiring as src/main.js (drag →
+    // kinematic, pushed poses written back every frame, arrows drive) — lets the desktop be tested
+    // with the robot running without the three.js layer. The robot is drawn as a circle.
+    if (q.has('sim')) {
+      const { createSim } = await import('/src/sim/index.js');
+      const W = innerWidth, H = innerHeight;
+      const sim = await createSim({ width: W, height: H, pxPerMeter: 440, seed: 1, dock: desk.getDock(), walls: desk.getWalls(), obstacles: desk.getIcons() });
+      window.sim = sim;
+      const dragging = new Set();
+      desk.onIconDragStart((id) => { dragging.add(id); const ic = desk.getIcons().find((i) => i.id === id); sim.setObstacleKinematic(id, ic.x, ic.y); });
+      desk.onIconDrag((id, x, y) => sim.setObstacleKinematic(id, x, y));
+      desk.onIconDragEnd((id) => { dragging.delete(id); sim.releaseObstacle(id); });
+      const held = new Set();
+      const K = { ArrowUp: 'f', ArrowDown: 'b', ArrowLeft: 'l', ArrowRight: 'r' };
+      addEventListener('keydown', (e) => { if (K[e.code]) { held.add(K[e.code]); e.preventDefault(); } });
+      addEventListener('keyup', (e) => { if (K[e.code]) held.delete(K[e.code]); });
+      window.__remote = held;
+      const robotDot = Object.assign(document.createElement('div'), { id: 'robot' });
+      Object.assign(robotDot.style, { position: 'fixed', left: 0, top: 0, width: '150px', height: '150px', margin: '-75px 0 0 -75px', borderRadius: '50%', background: 'rgba(60,60,64,.85)', boxShadow: 'inset 0 0 0 4px rgba(200,200,205,.8)', pointerEvents: 'none', zIndex: 1000 });
+      document.body.appendChild(robotDot);
+      let last = performance.now();
+      const frame = (now) => {
+        requestAnimationFrame(frame);
+        const dt = Math.min(1 / 30, Math.max(1e-3, (now - last) / 1000)); last = now;
+        sim.setManual(held.size ? { throttle: (held.has('f') ? 1 : 0) - (held.has('b') ? 1 : 0), steer: (held.has('r') ? 1 : 0) - (held.has('l') ? 1 : 0) } : null);
+        sim.step(dt);
+        const st = sim.getState();
+        window.state = st;
+        robotDot.style.transform = `translate(${st.robot.x}px, ${st.robot.y}px)`;
+        for (const o of st.obstacles) if (!dragging.has(o.id)) desk.setIconPosition(o.id, o.x, o.y, o.angle);
+      };
+      requestAnimationFrame(frame);
+    }
+    // demo: nudge an icon with the robot API when pressing N
+    addEventListener('keydown', (e) => {
+      if (e.key === 'n') { const i = desk.getIcons()[0]; desk.setIconPosition(i.id, i.x - 30, i.y + 20, (i.angle || 0) + 0.12); draw(); }
+    });
+  </script>
+</body>
+</html>

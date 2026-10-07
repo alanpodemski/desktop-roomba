@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.vercel/
+.DS_Store
+scripts/.bin/
+*.log
+blender/*.blend1
+shots/
+__pycache__/

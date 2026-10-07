@@ -1,0 +1,341 @@
+{
+  "display": {
+    "width": 1728,
+    "height": 1117
+  },
+  "positionsFromFinder": true,
+  "view": {
+    "iconSize": 48,
+    "gridSpacing": 32,
+    "textSize": 10,
+    "labelOnBottom": true,
+    "arrangeBy": "grid",
+    "showItemInfo": false,
+    "showIconPreview": true,
+    "showHardDrives": true,
+    "showExternalDrives": true
+  },
+  "items": [
+    {
+      "id": "macintosh-hd",
+      "name": "Macintosh HD",
+      "path": "/",
+      "kind": "volume",
+      "ext": "",
+      "isFolder": true,
+      "bytes": 18576642048,
+      "icloud": false,
+      "finderKind": "volume",
+      "pos": {
+        "x": 1688,
+        "y": 69
+      },
+      "icon": "/mac/icons/desk-macintosh-hd.png"
+    },
+    {
+      "id": "old-projects",
+      "name": "Old Projects",
+      "path": "/Users/demo/Desktop/Old Projects",
+      "kind": "folder",
+      "ext": "",
+      "isFolder": true,
+      "bytes": 4812000000,
+      "icloud": false,
+      "finderKind": "folder",
+      "pos": {
+        "x": 1688,
+        "y": 157
+      },
+      "icon": "/mac/icons/desk-old-projects.png"
+    },
+    {
+      "id": "taxes-2025",
+      "name": "Taxes 2025",
+      "path": "/Users/demo/Desktop/Taxes 2025",
+      "kind": "folder",
+      "ext": "",
+      "isFolder": true,
+      "bytes": 38400000,
+      "icloud": false,
+      "finderKind": "folder",
+      "pos": {
+        "x": 1688,
+        "y": 245
+      },
+      "icon": "/mac/icons/desk-taxes-2025.png"
+    },
+    {
+      "id": "design-assets",
+      "name": "Design Assets",
+      "path": "/Users/demo/Desktop/Design Assets",
+      "kind": "folder",
+      "ext": "",
+      "isFolder": true,
+      "bytes": 912000000,
+      "icloud": false,
+      "finderKind": "folder",
+      "pos": {
+        "x": 1688,
+        "y": 333
+      },
+      "icon": "/mac/icons/desk-design-assets.png"
+    },
+    {
+      "id": "untitled-folder",
+      "name": "untitled folder",
+      "path": "/Users/demo/Desktop/untitled folder",
+      "kind": "folder",
+      "ext": "",
+      "isFolder": true,
+      "bytes": 0,
+      "icloud": false,
+      "finderKind": "folder",
+      "pos": {
+        "x": 1688,
+        "y": 421
+      },
+      "icon": "/mac/icons/desk-untitled-folder.png"
+    },
+    {
+      "id": "archive-zip",
+      "name": "Archive.zip",
+      "path": "/Users/demo/Desktop/Archive.zip",
+      "kind": "zip",
+      "ext": "zip",
+      "isFolder": false,
+      "bytes": 264000000,
+      "icloud": false,
+      "finderKind": "zip",
+      "pos": {
+        "x": 1688,
+        "y": 509
+      },
+      "icon": "/mac/icons/desk-archive-zip.png"
+    },
+    {
+      "id": "screenshot-2026-10-03-at-14-22-18-png",
+      "name": "Screenshot 2026-10-03 at 14.22.18.png",
+      "path": "/Users/demo/Desktop/Screenshot 2026-10-03 at 14.22.18.png",
+      "kind": "png",
+      "ext": "png",
+      "isFolder": false,
+      "bytes": 1480000,
+      "icloud": false,
+      "finderKind": "png",
+      "pos": {
+        "x": 1616,
+        "y": 69
+      },
+      "icon": "/mac/icons/desk-screenshot-2026-10-03-at-14-22-18-png.png"
+    },
+    {
+      "id": "screenshot-2026-10-05-at-09-41-07-png",
+      "name": "Screenshot 2026-10-05 at 09.41.07.png",
+      "path": "/Users/demo/Desktop/Screenshot 2026-10-05 at 09.41.07.png",
+      "kind": "png",
+      "ext": "png",
+      "isFolder": false,
+      "bytes": 920000,
+      "icloud": false,
+      "finderKind": "png",
+      "pos": {
+        "x": 1616,
+        "y": 157
+      },
+      "icon": "/mac/icons/desk-screenshot-2026-10-05-at-09-41-07-png.png"
+    },
+    {
+      "id": "img-4821-jpeg",
+      "name": "IMG_4821.jpeg",
+      "path": "/Users/demo/Desktop/IMG_4821.jpeg",
+      "kind": "jpeg",
+      "ext": "jpeg",
+      "isFolder": false,
+      "bytes": 3210000,
+      "icloud": false,
+      "finderKind": "jpeg",
+      "pos": {
+        "x": 1616,
+        "y": 245
+      },
+      "icon": "/mac/icons/desk-img-4821-jpeg.png"
+    },
+    {
+      "id": "invoice-final-v3-pdf",
+      "name": "invoice_final_v3.pdf",
+      "path": "/Users/demo/Desktop/invoice_final_v3.pdf",
+      "kind": "pdf",
+      "ext": "pdf",
+      "isFolder": false,
+      "bytes": 184000,
+      "icloud": false,
+      "finderKind": "pdf",
+      "pos": {
+        "x": 1616,
+        "y": 333
+      },
+      "icon": "/mac/icons/desk-invoice-final-v3-pdf.png"
+    },
+    {
+      "id": "blender-4-5-arm64-dmg",
+      "name": "Blender-4.5-arm64.dmg",
+      "path": "/Users/demo/Desktop/Blender-4.5-arm64.dmg",
+      "kind": "dmg",
+      "ext": "dmg",
+      "isFolder": false,
+      "bytes": 412000000,
+      "icloud": false,
+      "finderKind": "dmg",
+      "pos": {
+        "x": 1616,
+        "y": 421
+      },
+      "icon": "/mac/icons/desk-blender-4-5-arm64-dmg.png"
+    },
+    {
+      "id": "notes-txt",
+      "name": "notes.txt",
+      "path": "/Users/demo/Desktop/notes.txt",
+      "kind": "txt",
+      "ext": "txt",
+      "isFolder": false,
+      "bytes": 2100,
+      "icloud": false,
+      "finderKind": "txt",
+      "pos": {
+        "x": 1544,
+        "y": 69
+      },
+      "icon": "/mac/icons/desk-notes-txt.png"
+    },
+    {
+      "id": "budget-2026-csv",
+      "name": "budget_2026.csv",
+      "path": "/Users/demo/Desktop/budget_2026.csv",
+      "kind": "csv",
+      "ext": "csv",
+      "isFolder": false,
+      "bytes": 46000,
+      "icloud": false,
+      "finderKind": "csv",
+      "pos": {
+        "x": 1544,
+        "y": 157
+      },
+      "icon": "/mac/icons/desk-budget-2026-csv.png"
+    },
+    {
+      "id": "screen-recording-2026-10-06-at-21-40-12-mov",
+      "name": "Screen Recording 2026-10-06 at 21.40.12.mov",
+      "path": "/Users/demo/Desktop/Screen Recording 2026-10-06 at 21.40.12.mov",
+      "kind": "mov",
+      "ext": "mov",
+      "isFolder": false,
+      "bytes": 1240000000,
+      "icloud": false,
+      "finderKind": "mov",
+      "pos": {
+        "x": 1544,
+        "y": 245
+      },
+      "icon": "/mac/icons/desk-screen-recording-2026-10-06-at-21-40-12-mov.png"
+    },
+    {
+      "id": "resume-2026-pdf",
+      "name": "resume_2026.pdf",
+      "path": "/Users/demo/Desktop/resume_2026.pdf",
+      "kind": "pdf",
+      "ext": "pdf",
+      "isFolder": false,
+      "bytes": 96000,
+      "icloud": false,
+      "finderKind": "pdf",
+      "pos": {
+        "x": 1544,
+        "y": 333
+      },
+      "icon": "/mac/icons/desk-resume-2026-pdf.png"
+    },
+    {
+      "id": "wallpaper-ideas",
+      "name": "wallpaper ideas",
+      "path": "/Users/demo/Desktop/wallpaper ideas",
+      "kind": "folder",
+      "ext": "",
+      "isFolder": true,
+      "bytes": 58000000,
+      "icloud": false,
+      "finderKind": "folder",
+      "pos": {
+        "x": 1472,
+        "y": 69
+      },
+      "icon": "/mac/icons/desk-wallpaper-ideas.png"
+    },
+    {
+      "id": "cat-jpeg",
+      "name": "cat.jpeg",
+      "path": "/Users/demo/Desktop/cat.jpeg",
+      "kind": "jpeg",
+      "ext": "jpeg",
+      "isFolder": false,
+      "bytes": 2400000,
+      "icloud": false,
+      "finderKind": "jpeg",
+      "pos": {
+        "x": 1020,
+        "y": 380
+      },
+      "icon": "/mac/icons/desk-cat-jpeg.png"
+    },
+    {
+      "id": "final-final-psd",
+      "name": "final_FINAL.psd",
+      "path": "/Users/demo/Desktop/final_FINAL.psd",
+      "kind": "psd",
+      "ext": "psd",
+      "isFolder": false,
+      "bytes": 188000000,
+      "icloud": false,
+      "finderKind": "psd",
+      "pos": {
+        "x": 760,
+        "y": 640
+      },
+      "icon": "/mac/icons/desk-final-final-psd.png"
+    },
+    {
+      "id": "todo-md",
+      "name": "todo.md",
+      "path": "/Users/demo/Desktop/todo.md",
+      "kind": "md",
+      "ext": "md",
+      "isFolder": false,
+      "bytes": 1300,
+      "icloud": false,
+      "finderKind": "md",
+      "pos": {
+        "x": 1240,
+        "y": 820
+      },
+      "icon": "/mac/icons/desk-todo-md.png"
+    },
+    {
+      "id": "node-modules-do-not-open",
+      "name": "Node Modules (do not open)",
+      "path": "/Users/demo/Desktop/Node Modules (do not open)",
+      "kind": "folder",
+      "ext": "",
+      "isFolder": true,
+      "bytes": 2100000000,
+      "icloud": false,
+      "finderKind": "folder",
+      "pos": {
+        "x": 420,
+        "y": 300
+      },
+      "icon": "/mac/icons/desk-node-modules-do-not-open.png"
+    }
+  ],
+  "fake": true
+}
