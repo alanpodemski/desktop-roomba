@@ -1,31 +1,28 @@
 // phoneHud.js — the phone layout's minimal HUD (SPEC-mobile, as revised by the user), all inside the phone stage:
 //   • a compact Liquid Glass status pill under the status bar (mode, battery, bin) with flash() toasts
-//   • a floating glass joystick spawned by touch-and-hold on empty wallpaper (drives via onStick)
+//   • tap (or touch and drag) on empty wallpaper: the robot drives to that spot (onGoto), with a ripple marker
 //   • double-tap on empty wallpaper -> onDoubleTap(x, y) (a new cake on a plate there)
 //   • a one-time hint that fades after a few seconds
 // No map card and no buttons on phones: the robot docks and empties on its own. Nothing here runs on the desktop.
 
 import { MODE_LABEL } from './overlay.js';
 
-const HOLD_MS = 180;          // touch-and-hold before the joystick appears
-const MOVE_SPAWN = 14;        // ...or this much travel (px) from the touch point
-const STICK_R = 44;           // knob travel (px)
 const TAP_MS = 260;           // a tap: released within this time...
 const TAP_MOVE = 10;          // ...having moved less than this
 const DOUBLE_TAP_MS = 320;    // second tap within this time...
 const DOUBLE_TAP_PX = 36;     // ...and this close to the first
-const HINT_KEY = 'rb-phone-hint-v2';
+const HINT_KEY = 'rb-phone-hint-v3';
 
 /**
  * @param {object} o
  * @param {HTMLElement} o.stage
- * @param {(stick: {throttle, steer, turbo} | null) => void} o.onStick
+ * @param {(x: number, y: number) => void} o.onGoto   stage px: drive there
  * @param {(x: number, y: number) => void} o.onDoubleTap   stage px
  * @param {(x: number, y: number) => boolean} o.isFloor   stage px: empty wallpaper (no icon, wall, HUD)
  * @param {() => boolean} [o.isBusy]   the layout is in a mode that owns taps (iOS jiggle mode)
  * @param {boolean} [o.forceHint]
  */
-export function createPhoneHud({ stage, onStick, onDoubleTap, isFloor, isBusy = () => false, forceHint = false }) {
+export function createPhoneHud({ stage, onGoto, onDoubleTap, isFloor, isBusy = () => false, forceHint = false }) {
   const style = document.createElement('style');
   style.textContent = `
   .rb-ph { position: absolute; z-index: 1002; color: #fff; font: 500 12px/1.2 -apple-system, BlinkMacSystemFont, "SF Pro Text", Helvetica, sans-serif;
@@ -43,12 +40,12 @@ export function createPhoneHud({ stage, onStick, onDoubleTap, isFloor, isBusy = 
   .rb-ph-hint { left: 50%; top: 46%; transform: translate(-50%, -50%); padding: 9px 14px; border-radius: 16px; width: max-content; max-width: 90%; white-space: nowrap;
     font-size: 12.5px; line-height: 1.35; text-align: center; transition: opacity .6s ease; }
   .rb-ph-hint.gone { opacity: 0; }
-  .rb-ph-stick { width: ${STICK_R * 2 + 26}px; height: ${STICK_R * 2 + 26}px; margin: ${-(STICK_R + 13)}px 0 0 ${-(STICK_R + 13)}px;
-    border-radius: 50%; opacity: 0; transform: scale(.7); transition: opacity .15s ease, transform .15s ease; }
-  .rb-ph-stick.on { opacity: 1; transform: scale(1); }
-  .rb-ph-stick.turbo { box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.6), 0 0 0 2px rgba(120,200,255,0.55), 0 8px 24px rgba(0,0,0,0.28); }
-  .rb-ph-knob { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%;
-    background: rgba(255,255,255,0.55); box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 4px 12px rgba(0,0,0,.3); }
+  .rb-ph-target { width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; opacity: 0;
+    border: 2px solid rgba(255,255,255,.9); box-shadow: 0 0 0 1px rgba(0,0,0,.15), 0 0 12px rgba(255,255,255,.35); }
+  .rb-ph-target.on { animation: rb-ph-ripple .9s ease-out infinite; }
+  .rb-ph-target.drop { animation: rb-ph-drop .35s ease-out forwards; }
+  @keyframes rb-ph-ripple { 0% { opacity: .95; transform: scale(.45); } 100% { opacity: 0; transform: scale(1.35); } }
+  @keyframes rb-ph-drop { 0% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: scale(.4); } }
   .rb-ph.hidden { opacity: 0 !important; }
   `;
   document.head.appendChild(style);
@@ -84,51 +81,35 @@ export function createPhoneHud({ stage, onStick, onDoubleTap, isFloor, isBusy = 
   try { seen = localStorage.getItem(HINT_KEY) === '1'; } catch { /* private mode */ }
   const fadeHint = () => { if (!hintEl) return; hintEl.classList.add('gone'); const h = hintEl; hintEl = null; setTimeout(() => h.remove(), 700); };
   if (forceHint || !seen) {
-    hintEl = mk('rb-ph rb-ph-glass rb-ph-hint', 'Hold to drive · Double-tap for cake<br>Long-press an icon to move it');
+    hintEl = mk('rb-ph rb-ph-glass rb-ph-hint', 'Tap to send the robot · Double-tap for cake<br>Long-press an icon to move it');
     try { localStorage.setItem(HINT_KEY, '1'); } catch { /* ignore */ }
     setTimeout(fadeHint, 6000);
   }
 
-  // ---- joystick + double-tap ----------------------------------------------------------------------------
-  const stickEl = mk('rb-ph rb-ph-glass rb-ph-stick', '<div class="rb-ph-knob"></div>');
-  const knob = stickEl.querySelector('.rb-ph-knob');
-  let touch = null;      // { id, x0, y0, x, y, t0, active, timer }
+  // ---- tap-to-go + double-tap ----------------------------------------------------------------------------
+  // Touch the wallpaper: the robot drives to that spot. Keep the finger down and move it: the target follows.
+  // A second tap in the same place places a cake there (and the robot is already on its way to it).
+  const targetEl = mk('rb-ph rb-ph-target');
+  let touch = null;      // { id, x0, y0, x, y, t0 }
   let lastTap = null;    // { x, y, t }
   const local = (e) => { const r = stage.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
-  function spawn() {
-    if (!touch || touch.active) return;
-    if (isBusy()) { end(null); return; }
-    touch.active = true; lastTap = null;
-    stickEl.style.left = touch.x0 + 'px'; stickEl.style.top = touch.y0 + 'px';
-    stickEl.classList.add('on');
-    fadeHint();
-    move(touch.x, touch.y);
+  function showTarget(x, y) {
+    targetEl.style.left = x + 'px'; targetEl.style.top = y + 'px';
+    if (!targetEl.classList.contains('on')) { targetEl.classList.remove('drop'); void targetEl.offsetWidth; targetEl.classList.add('on'); }
   }
-  function move(x, y) {
-    let dx = x - touch.x0, dy = y - touch.y0;
-    const d = Math.hypot(dx, dy);
-    if (d > STICK_R) { dx *= STICK_R / d; dy *= STICK_R / d; }
-    knob.style.transform = `translate(${dx}px, ${dy}px)`;
-    const turbo = d >= STICK_R * 1.15;          // pushed to (and past) the rim
-    stickEl.classList.toggle('turbo', turbo);
-    // tank-style like the arrow keys: up = forward, sideways = turn
-    onStick({ throttle: -dy / STICK_R, steer: dx / STICK_R, turbo });
-  }
+  function goto(x, y) { showTarget(x, y); onGoto(x, y); fadeHint(); }
   function end(e) {
     if (!touch) return;
-    clearTimeout(touch.timer);
-    if (touch.active) { stickEl.classList.remove('on', 'turbo'); knob.style.transform = ''; onStick(null); }
-    else if (e && e.type === 'pointerup' && performance.now() - touch.t0 < TAP_MS && Math.hypot(touch.x - touch.x0, touch.y - touch.y0) < TAP_MOVE) {
-      // a tap on empty wallpaper: the second one in quick succession places a cake there
+    if (e && e.type === 'pointerup' && performance.now() - touch.t0 < TAP_MS && Math.hypot(touch.x - touch.x0, touch.y - touch.y0) < TAP_MOVE) {
       const now = performance.now();
       if (lastTap && now - lastTap.t < DOUBLE_TAP_MS && Math.hypot(touch.x0 - lastTap.x, touch.y0 - lastTap.y) < DOUBLE_TAP_PX) {
-        lastTap = null; fadeHint(); onDoubleTap(touch.x0, touch.y0);
+        lastTap = null; onDoubleTap(touch.x0, touch.y0);
       } else lastTap = { x: touch.x0, y: touch.y0, t: now };
     }
     touch = null;
   }
-  // sampled in the capture phase, before the layout's own handlers: the tap that ends jiggle mode must be
-  // neither a joystick hold nor half of a double-tap
+  // sampled in the capture phase, before the layout's own handlers: the tap that ends jiggle mode must not
+  // send the robot anywhere or count as half of a double-tap
   let busyAtDown = false;
   stage.addEventListener('pointerdown', () => { busyAtDown = !!isBusy(); }, true);
   stage.addEventListener('pointerdown', (e) => {
@@ -136,20 +117,24 @@ export function createPhoneHud({ stage, onStick, onDoubleTap, isFloor, isBusy = 
     if (busyAtDown || isBusy()) { lastTap = null; return; }
     const p = local(e);
     if (!isFloor(p.x, p.y)) { lastTap = null; return; }
-    touch = { id: e.pointerId, x0: p.x, y0: p.y, x: p.x, y: p.y, t0: performance.now(), active: false, timer: setTimeout(spawn, HOLD_MS) };
+    touch = { id: e.pointerId, x0: p.x, y0: p.y, x: p.x, y: p.y, t0: performance.now() };
+    goto(p.x, p.y);
   });
+  let moveRaf = 0;
   addEventListener('pointermove', (e) => {
     if (!touch || e.pointerId !== touch.id) return;
+    if (isBusy()) { end(null); return; }   // the layout took this touch (e.g. entered jiggle mode)
     const p = local(e); touch.x = p.x; touch.y = p.y;
-    if (!touch.active && isBusy()) { end(null); return; }   // the layout took this touch (e.g. entered jiggle mode)
-    if (!touch.active && Math.hypot(p.x - touch.x0, p.y - touch.y0) > MOVE_SPAWN) spawn();
-    if (touch.active) { e.preventDefault(); move(p.x, p.y); }
+    e.preventDefault();
+    if (!moveRaf) moveRaf = requestAnimationFrame(() => { moveRaf = 0; if (touch && isFloor(touch.x, touch.y)) goto(touch.x, touch.y); });
   }, { passive: false });
   addEventListener('pointerup', (e) => { if (touch && e.pointerId === touch.id) end(e); });
   addEventListener('pointercancel', (e) => { if (touch && e.pointerId === touch.id) end(e); });
   addEventListener('blur', () => end(null));
   // no browser double-tap zoom / dblclick selection on the stage
   stage.addEventListener('dblclick', (e) => e.preventDefault());
+  /** the robot reached (or gave up on) the target */
+  function clearTarget() { if (targetEl.classList.contains('on')) { targetEl.classList.remove('on'); targetEl.classList.add('drop'); } }
 
   // ---- layout -------------------------------------------------------------------------------------------
   /**
@@ -168,7 +153,7 @@ export function createPhoneHud({ stage, onStick, onDoubleTap, isFloor, isBusy = 
     pillEl.style.visibility = '';
   }
 
-  function setVisible(v) { stickEl.classList.toggle('hidden', !v); pill.setVisible(v); if (!v && hintEl) hintEl.remove(); }
+  function setVisible(v) { targetEl.classList.toggle('hidden', !v); pill.setVisible(v); if (!v && hintEl) hintEl.remove(); }
 
-  return { pill, layout, setVisible, get driving() { return !!(touch && touch.active); } };
+  return { pill, layout, setVisible, clearTarget, get driving() { return !!touch; } };
 }

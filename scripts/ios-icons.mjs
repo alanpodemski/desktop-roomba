@@ -37,6 +37,7 @@ const run = (file, args) => {
 // Home screen page 1 (4 × 4, three cells left empty in the middle area as open floor for the robot),
 // then the dock. Labels are the iOS names.
 //   id, label, candidate bundles, slot [row, col] or 'dock'
+// 8 apps in two rows (plus the Dock): the rest of the screen is the robot's floor
 const APPS = [
   ['facetime', 'FaceTime', ['FaceTime'], [0, 0]],
   ['calendar', 'Calendar', ['Calendar'], [0, 1]],
@@ -45,12 +46,7 @@ const APPS = [
   ['clock', 'Clock', ['Clock'], [1, 0]],
   ['maps', 'Maps', ['Maps'], [1, 1]],
   ['weather', 'Weather', ['Weather'], [1, 2]],
-  ['reminders', 'Reminders', ['Reminders'], [1, 3]],
-  ['notes', 'Notes', ['Notes'], [2, 0]],
-  ['app-store', 'App Store', ['App Store'], [2, 3]],
-  ['podcasts', 'Podcasts', ['Podcasts'], [3, 0]],
-  ['tv', 'TV', ['TV'], [3, 2]],
-  ['settings', 'Settings', ['System Settings', 'System Preferences'], [3, 3]],
+  ['settings', 'Settings', ['System Settings', 'System Preferences'], [1, 3]],
   ['phone', 'Phone', ['Phone', 'FaceTime'], 'dock'],
   ['safari', 'Safari', ['Safari'], 'dock'],
   ['messages', 'Messages', ['Messages'], 'dock'],

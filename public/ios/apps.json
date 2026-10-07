@@ -80,67 +80,12 @@
       "dock": false
     },
     {
-      "id": "reminders",
-      "label": "Reminders",
-      "icon": "/ios/icons/reminders.png",
-      "bytes": 15245312,
-      "slot": {
-        "row": 1,
-        "col": 3
-      },
-      "dock": false
-    },
-    {
-      "id": "notes",
-      "label": "Notes",
-      "icon": "/ios/icons/notes.png",
-      "bytes": 14401536,
-      "slot": {
-        "row": 2,
-        "col": 0
-      },
-      "dock": false
-    },
-    {
-      "id": "app-store",
-      "label": "App Store",
-      "icon": "/ios/icons/app-store.png",
-      "bytes": 8564736,
-      "slot": {
-        "row": 2,
-        "col": 3
-      },
-      "dock": false
-    },
-    {
-      "id": "podcasts",
-      "label": "Podcasts",
-      "icon": "/ios/icons/podcasts.png",
-      "bytes": 41758720,
-      "slot": {
-        "row": 3,
-        "col": 0
-      },
-      "dock": false
-    },
-    {
-      "id": "tv",
-      "label": "TV",
-      "icon": "/ios/icons/tv.png",
-      "bytes": 47095808,
-      "slot": {
-        "row": 3,
-        "col": 2
-      },
-      "dock": false
-    },
-    {
       "id": "settings",
       "label": "Settings",
       "icon": "/ios/icons/settings.png",
       "bytes": 2990080,
       "slot": {
-        "row": 3,
+        "row": 1,
         "col": 3
       },
       "dock": false

@@ -143,8 +143,8 @@ async function boot() {
   if (MOBILE) {
     phoneHud = createPhoneHud({
       stage,
-      onStick: (st) => { drive.stick = st; drive.lastInput = performance.now(); },
-      onDoubleTap: (x, y) => placeCake(x, y),
+      onGoto: (x, y) => setGoto(x, y),
+      onDoubleTap: (x, y) => { if (!plateNear(x, y)) placeCake(x, y); },   // double-tap on a cake rams it, no second cake
       isFloor: (x, y) => isFloor(x, y),
       isBusy: () => typeof desk.isJiggling === 'function' && !!desk.isJiggling(),
       forceHint: q.has('hint'),
@@ -292,7 +292,7 @@ async function boot() {
   addEventListener('keydown', unlock);
   // ---- remote control: arrows / WASD drive, Shift = turbo, Enter (or 4 s idle) hands it back ----------------
   const DRIVE_KEYS = { ArrowUp: 'f', KeyW: 'f', ArrowDown: 'b', KeyS: 'b', ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r' };
-  const drive = { held: new Set(), turbo: false, lastInput: -1e9, throttle: 0, steer: 0, stick: null };
+  const drive = { held: new Set(), turbo: false, lastInput: -1e9, throttle: 0, steer: 0, stick: null, goto: null };
   const HANDBACK_S = 4;
   window.__drive = drive;
   addEventListener('keydown', (e) => {
@@ -313,11 +313,56 @@ async function boot() {
   // hand the robot back now: forget held keys and the idle grace period
   function dropRemote() {
     drive.held.clear(); drive.lastInput = -1e9; drive.throttle = 0; drive.steer = 0; drive.stick = null;
+    if (drive.goto) { drive.goto = null; phoneHud?.clearTarget(); }
     if (sim) sim.setManual(null);
+  }
+  // the plate (with a cake) under a tap, if any
+  function plateNear(x, y) {
+    const plates = (state && state.plates) || [];
+    let best = null, bd = Infinity;
+    for (const p of plates) {
+      const d = Math.hypot(p.x - x, p.y - y), r = (p.r || 0.11 * PX_PER_M) * 1.35;
+      if (d < r && d < bd) { bd = d; best = p; }
+    }
+    return best;
+  }
+  function setGoto(x, y) {
+    const r = state && state.robot;
+    const plate = plateNear(x, y);
+    const g = { x, y, best: Infinity, bestT: performance.now(), ram: false };
+    if (plate && r) {
+      // tapping the cake means "hit it": drive through the plate, aiming a robot radius beyond its centre
+      const dx = plate.x - r.x, dy = plate.y - r.y, d = Math.hypot(dx, dy) || 1, Rpx = 0.17 * PX_PER_M;
+      g.x = plate.x + dx / d * Rpx; g.y = plate.y + dy / d * Rpx; g.ram = true;
+    }
+    drive.goto = g; drive.held.clear(); drive.lastInput = performance.now();
+  }
+  // tap-to-go (phones): steer the real wheel motors toward the tapped spot, full speed through it, so tapping
+  // the cake rams it. Turns in place when the target is behind, gives up if it makes no progress for 3 s.
+  function gotoCommand() {
+    const g = drive.goto, r = state && state.robot;
+    if (!g || !r) return null;
+    const Rpx = 0.17 * PX_PER_M;
+    const dx = g.x - r.x, dy = g.y - r.y, dist = Math.hypot(dx, dy);
+    const now = performance.now();
+    if (dist < g.best - 4) { g.best = dist; g.bestT = now; }
+    if (dist < Rpx * 0.3 || now - g.bestT > 3000) {
+      if (now - g.bestT > 3000) pill.flash("Can't get there");
+      drive.goto = null; phoneHud?.clearTarget(); return null;
+    }
+    let err = Math.atan2(dy, dx) - r.angle;
+    err = Math.atan2(Math.sin(err), Math.cos(err));
+    const steer = Math.max(-1, Math.min(1, err * 2.2));
+    const throttle = Math.abs(err) > 1.0 ? 0 : Math.max(0.35, Math.cos(err));
+    return { throttle, steer, turbo: (g.ram || dist > Rpx * 2.5) && Math.abs(err) < 0.35 };
   }
   function updateDrive(dt) {
     if (!sim) return;
-    const h = drive.held, st = drive.stick;
+    const h = drive.held;
+    if (h.size && drive.goto) { drive.goto = null; phoneHud?.clearTarget(); }   // keys take over
+    const go = gotoCommand();
+    if (go) drive.lastInput = performance.now();
+    const st = go || drive.stick;
     // the phone's joystick is analogue; the keys are on/off
     const tgtT = st ? st.throttle : (h.has('f') ? 1 : 0) - (h.has('b') ? 1 : 0);
     const tgtS = st ? st.steer : (h.has('r') ? 1 : 0) - (h.has('l') ? 1 : 0);
@@ -412,6 +457,10 @@ async function boot() {
   const MIN_FRAME_MS = 12;
   function frame(now) {
     requestAnimationFrame(frame);
+    tick(now);
+  }
+  /** one frame of the app (exposed as __roomba.tick for scripted tests while the tab is hidden) */
+  function tick(now) {
     if (now - last < MIN_FRAME_MS) return;
     let dt = (now - last) / 1000; last = now;
     if (!(dt > 0)) dt = 1 / 60;
@@ -467,7 +516,7 @@ async function boot() {
   requestAnimationFrame(frame);
 
   // expose for debugging in the console
-  window.__roomba = { get sim() { return sim; }, get state() { return state; }, desk, view, robot, sound, map, pill, mini, legend, smear, cake: cakeR, plate: plateR, layoutHud, phoneHud, drive, updateDrive, stage, mode: window.__mode };
+  window.__roomba = { tick: (now) => tick(now), get sim() { return sim; }, get state() { return state; }, desk, view, robot, sound, map, pill, mini, legend, smear, cake: cakeR, plate: plateR, layoutHud, phoneHud, drive, updateDrive, stage, mode: window.__mode };
 }
 
 boot().catch((err) => {
