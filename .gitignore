@@ -7,3 +7,5 @@ scripts/.bin/
 blender/*.blend1
 shots/
 __pycache__/
+.vercel
+.env*
